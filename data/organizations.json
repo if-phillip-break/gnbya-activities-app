@@ -1,0 +1,1587 @@
+[
+  {
+    "id": "3rd-eye-youth-empowerment",
+    "name": "3rd EyE Youth Empowerment",
+    "website": "https://3rdeyeunlimited.org/",
+    "minAge": 5,
+    "maxAge": null,
+    "gradeLevels": [
+      "Elementary",
+      "High",
+      "Middle",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Mentoring/Leadership",
+      "Visual Arts/Performing Arts/Culture"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Drop In"
+    ],
+    "transportation": [
+      "Provided From Our Program Site To Home",
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown;NB Northend;NB Westend;NB Southend",
+    "schoolsServed": "All",
+    "schedule": "7 Days",
+    "description": "3rd EyE runs programming and events year round in our community incubator at 230 Union Street, as well as at parks, community centers, beaches, cultural institutions, youth serving partner orgs, etc. We serve all ages and are family-centric with a focus on 10-24 y.o."
+  },
+  {
+    "id": "alma-del-mar-charter-schools",
+    "name": "Alma del Mar Charter Schools",
+    "website": "https://www.almadelmar.org/",
+    "minAge": 5,
+    "maxAge": 13,
+    "gradeLevels": [
+      "Elementary",
+      "Middle"
+    ],
+    "earlyEducationServices": [
+      "Care School Age"
+    ],
+    "youthServices": [],
+    "programYear": [
+      "School Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required",
+      "Restricted Access"
+    ],
+    "transportation": [
+      "Provided To Our Site",
+      "Provided From Our Program Site To Home"
+    ],
+    "location": "NB Northend",
+    "schoolsServed": "All Elementary and Middle",
+    "schedule": "Monday-Friday",
+    "description": "Alma del Mar's free application opens up in October each year, for the following school year. The application deadline is in February and the enrollment lottery is held on or by March 15th."
+  },
+  {
+    "id": "american-red-cross-of-southeastern-ma",
+    "name": "American Red Cross of Southeastern MA",
+    "website": "https://www.redcross.org/local/massachusetts/about-us/locations/southeastern-massachusetts.html",
+    "minAge": null,
+    "maxAge": null,
+    "gradeLevels": [],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness"
+    ],
+    "programYear": [],
+    "programModel": [],
+    "cost": [],
+    "registration": [],
+    "transportation": [],
+    "location": null,
+    "schoolsServed": null,
+    "schedule": null,
+    "description": null
+  },
+  {
+    "id": "big-brothers-big-sisters-of-eastern-massachusetts",
+    "name": "Big Brothers Big Sisters of Eastern Massachusetts",
+    "website": "https://www.emassbigs.org/",
+    "minAge": 7,
+    "maxAge": 12,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Mentoring/Leadership"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Weekend Only",
+      "After School",
+      "Evening"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "We are not a site-based program. Mentors pick up Mentees at their residences for outings",
+    "schoolsServed": "All",
+    "schedule": "7 Days",
+    "description": "As a non-four wall program that takes place in the community, transportation is done by Bigs & Littles on their own schedules."
+  },
+  {
+    "id": "boys-girls-club-of-greater-new-bedford",
+    "name": "Boys & Girls Club of Greater New Bedford",
+    "website": "https://bgcnewbedford.org/",
+    "minAge": 7,
+    "maxAge": 18,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Academic Achievement",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership",
+      "Sports/Recreation",
+      "Science/Nature",
+      "Vocational Readiness",
+      "Health Safety & Wellness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Evening"
+    ],
+    "cost": [
+      "Fee"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Westend",
+    "schoolsServed": "All",
+    "schedule": "Monday-Friday",
+    "description": null
+  },
+  {
+    "id": "buttonwood-park-zoo",
+    "name": "Buttonwood Park Zoo",
+    "website": "https://www.bpzoo.org/",
+    "minAge": null,
+    "maxAge": null,
+    "gradeLevels": [
+      "All Ages"
+    ],
+    "earlyEducationServices": [
+      "Care School Age",
+      "Care Infant and Toddler",
+      "Care Preschool"
+    ],
+    "youthServices": [
+      "Academic Achievement",
+      "Mentoring/Leadership",
+      "Science/Nature",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Evening",
+      "Full Day"
+    ],
+    "cost": [
+      "Free",
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In",
+      "Restricted Access"
+    ],
+    "transportation": [],
+    "location": "NB Westend",
+    "schoolsServed": "All",
+    "schedule": "7 Days",
+    "description": "Information differs depending on whether families are interested in just visiting the Buttonwood Park Zoo versus if they would like to participate in programs."
+  },
+  {
+    "id": "buzzards-bay-coalition",
+    "name": "Buzzards Bay Coalition",
+    "website": "https://www.savebuzzardsbay.org/",
+    "minAge": 8,
+    "maxAge": 17,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Mentoring/Leadership",
+      "Sports/Recreation",
+      "Science/Nature"
+    ],
+    "programYear": [
+      "Full Year With Limited Winter Programs"
+    ],
+    "programModel": [
+      "After School",
+      "Full Day",
+      "Summer Only"
+    ],
+    "cost": [
+      "Free",
+      "Slide Scale Based on Income",
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [],
+    "location": "Onset, MA with drop-in programs and field trips in New Bedford and across the Buzzards Bay Watershed",
+    "schoolsServed": "NBPS and Sea Lab, Wareham Public Schools",
+    "schedule": "Monday-Friday (Summer youth program); drop-in programs vary 7 days",
+    "description": "Free Afterschool Clubs and Summer Youth Programs with scholarship available are at Onset Bay Center. Free Bay Adventures drop-in programs across the Buzzards Bay Watershed towns-see online calendar. Free outdoor learning field trips for NBPS students and community organizations."
+  },
+  {
+    "id": "child-family-services-inc",
+    "name": "Child & Family Services, Inc.",
+    "website": "https://www.cffutures.org/",
+    "minAge": null,
+    "maxAge": null,
+    "gradeLevels": [],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Mentoring/Leadership",
+      "Vocational Readiness",
+      "Mental Health Services"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Drop In"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "NB Northend",
+    "schoolsServed": null,
+    "schedule": "Monday-Friday",
+    "description": "Everyone is welcome. In addition to our outreach programs, we are available 24/7 for emergency mental health services."
+  },
+  {
+    "id": "children-s-advocacy-center-of-bristol-county",
+    "name": "Children's Advocacy Center of Bristol County",
+    "website": "https://cacofbc.org/",
+    "minAge": 2,
+    "maxAge": 18,
+    "gradeLevels": [
+      "All Ages"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Mental Health Services"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Restricted Access"
+    ],
+    "transportation": [],
+    "location": "Fall River",
+    "schoolsServed": "All",
+    "schedule": "Monday-Friday",
+    "description": "Facilitating forensic interviews for criminal child abuse cases, work closely with; Forensic Interviewing, Family Advocacy, Pediatric Nurse, Education & Prevention"
+  },
+  {
+    "id": "childs-play-parent-joy",
+    "name": "Childs Play Parent Joy",
+    "website": "https://www.childsplayparentjoy.com/",
+    "minAge": 0,
+    "maxAge": 10,
+    "gradeLevels": [
+      "Infant/Toddler",
+      "Elementary"
+    ],
+    "earlyEducationServices": [
+      "Care Infant and Toddler",
+      "Care Preschool",
+      "Care School Age"
+    ],
+    "youthServices": [],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Slide Scale Based on Income"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [],
+    "location": "In Home & Site Based Service",
+    "schoolsServed": "Bristol County",
+    "schedule": "7 days",
+    "description": "www.childsplayparentjoy.com Supporting Children & Families Through Play-Based Learning Helping children ages 2-10 develop essential life skills while coaching parents to create meaningful connections through play-based interventions in your home or community."
+  },
+  {
+    "id": "community-boating-center-inc",
+    "name": "Community Boating Center, Inc.",
+    "website": "https://www.communityboating.org/",
+    "minAge": 5,
+    "maxAge": null,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Mentoring/Leadership",
+      "Sports/Recreation"
+    ],
+    "programYear": [
+      "Summer"
+    ],
+    "programModel": [
+      "Partial Day",
+      "Full Day"
+    ],
+    "cost": [
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site",
+      "Provided From Our Program Site To Home",
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Southend",
+    "schoolsServed": "All",
+    "schedule": "Monday-Friday",
+    "description": "While we offer year round program, it is only our summer program that the general public can sign up for. Other programming is school or organization based."
+  },
+  {
+    "id": "dennison-memorial-community-center",
+    "name": "Dennison Memorial Community Center",
+    "website": "https://www.dennisoncommunity.org/",
+    "minAge": 6,
+    "maxAge": 18,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [
+      "Care School Age"
+    ],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Academic Achievement",
+      "Mentoring/Leadership",
+      "Sports/Recreation"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [],
+    "location": "NB Southend",
+    "schoolsServed": "Congdon, DeValles, GLCPS, Gomes, Nativity Prep, NBHS, GNBRVTHS, Our Sisters School, Roosevelt Middle, Sea Lab, Taylor, Whaling City, Winslow",
+    "schedule": "Monday-Friday",
+    "description": null
+  },
+  {
+    "id": "department-of-community-services",
+    "name": "Department of Community Services",
+    "website": "https://www.newbedford-ma.gov/community-services/",
+    "minAge": 8,
+    "maxAge": 10,
+    "gradeLevels": [
+      "Elementary"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Visual Arts/Performing Arts/Culture"
+    ],
+    "programYear": [
+      "School Year",
+      "School Holidays/ Breaks"
+    ],
+    "programModel": [
+      "Weekend Only",
+      "After School"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [],
+    "location": "NB Northend, NB Southend",
+    "schoolsServed": "Ashley, Campbell, Gomes, Lincoln, Parker, Rodman, Swift",
+    "schedule": "Monday-Saturday",
+    "description": null
+  },
+  {
+    "id": "dream-out-loud-center",
+    "name": "Dream Out Loud Center",
+    "website": "http://dreamoutloudcenter.org/",
+    "minAge": 10,
+    "maxAge": null,
+    "gradeLevels": [
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Academic Achievement",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Evening"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site",
+      "Provided From Our Program Site To Home",
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Southend",
+    "schoolsServed": "All Middle and High Schools",
+    "schedule": "Tuesday-Thursday",
+    "description": null
+  },
+  {
+    "id": "good-company-new-bedford",
+    "name": "Good Company New Bedford",
+    "website": "https://www.goodcompanynb.com/",
+    "minAge": 14,
+    "maxAge": null,
+    "gradeLevels": [
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Partial Day"
+    ],
+    "cost": [
+      "Free",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "All High Schools",
+    "schedule": "Monday-Friday",
+    "description": null
+  },
+  {
+    "id": "greater-new-bedford-workforce-board",
+    "name": "Greater New Bedford Workforce Board",
+    "website": "https://masshiregreaternewbedford.com/",
+    "minAge": null,
+    "maxAge": null,
+    "gradeLevels": [],
+    "earlyEducationServices": [],
+    "youthServices": [],
+    "programYear": [],
+    "programModel": [],
+    "cost": [],
+    "registration": [],
+    "transportation": [],
+    "location": null,
+    "schoolsServed": null,
+    "schedule": null,
+    "description": null
+  },
+  {
+    "id": "groundwork-southcoast",
+    "name": "Groundwork Southcoast",
+    "website": "https://groundworksouthcoast.org/",
+    "minAge": 11,
+    "maxAge": null,
+    "gradeLevels": [
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership",
+      "Science/Nature",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Partial Day",
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "All Middle, All High Schools, Bristol Agriculture",
+    "schedule": "Monday-Friday",
+    "description": "Employment Opportunities available at https://groundworksouthcoast.org/job-opportunities/"
+  },
+  {
+    "id": "junior-achievement-of-southern-ma",
+    "name": "Junior Achievement of Southern MA",
+    "website": "https://jasouthernma.org/",
+    "minAge": 5,
+    "maxAge": 25,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Academic Achievement",
+      "Mentoring/Leadership"
+    ],
+    "programYear": [
+      "School Year"
+    ],
+    "programModel": [
+      "After School",
+      "Partial Day",
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": null,
+    "schedule": "Monday-Friday",
+    "description": "JA serves in the school premises. We also offer support to youth who are in need of additional support. We do run these other programs to support our local youth year round."
+  },
+  {
+    "id": "kennedy-donovan-center",
+    "name": "Kennedy Donovan Center",
+    "website": "https://www.kdc.org/",
+    "minAge": null,
+    "maxAge": 2,
+    "gradeLevels": [
+      "Infant/Toddler"
+    ],
+    "earlyEducationServices": [
+      "Care Infant and Toddler"
+    ],
+    "youthServices": [],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [],
+    "transportation": [],
+    "location": null,
+    "schoolsServed": null,
+    "schedule": "Monday-Friday",
+    "description": null
+  },
+  {
+    "id": "little-people-s-college",
+    "name": "Little People's College",
+    "website": "https://www.littlepeoplescollege.com/",
+    "minAge": null,
+    "maxAge": 12,
+    "gradeLevels": [
+      "Infant/Toddler",
+      "Pre-K",
+      "Elementary"
+    ],
+    "earlyEducationServices": [
+      "Care Infant and Toddler",
+      "Care Preschool",
+      "Care School Age"
+    ],
+    "youthServices": [],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Before School",
+      "After School",
+      "Full Day"
+    ],
+    "cost": [
+      "Fee",
+      "Financial Assistance",
+      "Accepts Child Care Subsidies"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site",
+      "Provided From Our Program Site To Home",
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Northend, NB Westend, NB Southend",
+    "schoolsServed": "All Elementary, Acushnet Elementary & Dartmouth elementary schools",
+    "schedule": "Monday-Friday",
+    "description": "Our 6 centers are state licensed and nationally accredited."
+  },
+  {
+    "id": "massachusetts-design-art-technology-institute-datma",
+    "name": "Massachusetts Design Art & Technology Institute (DATMA)",
+    "website": "https://datma.org/",
+    "minAge": 5,
+    "maxAge": null,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Partial Day",
+      "Full Day",
+      "Evening"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Drop In",
+      "Restricted Access"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown, NB Northend, NB Westend, NB Southend, Acushnet, Fairhaven, Dartmouth, DATMA brings programs into classrooms",
+    "schoolsServed": "All",
+    "schedule": "Monday-Saturday",
+    "description": "DATMA works with teachers (Restricted access) to create programs and bring them into the classroom- during school hours or after school, and during the summer. DATMA provides pop-up programs in public shared spaces overlapping with public, family friendly (drop-in) events. Our programs take-place throughout the SouthCoast. Learn more at www.datma.org/education."
+  },
+  {
+    "id": "nativity-preparatory-school-new-bedford",
+    "name": "Nativity Preparatory School New Bedford",
+    "website": "https://www.nativitynb.org/",
+    "minAge": 10,
+    "maxAge": 15,
+    "gradeLevels": [
+      "Middle"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Academic Achievement",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership",
+      "Sports/Recreation",
+      "Science/Nature",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "School Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "Nativity Prep",
+    "schedule": "Monday-Saturday",
+    "description": "All boys, tuition free, independent middle school"
+  },
+  {
+    "id": "new-bedford-art-museum",
+    "name": "New Bedford Art Museum",
+    "website": "https://newbedfordart.org/",
+    "minAge": 5,
+    "maxAge": 18,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Visual Arts/Performing Arts/Culture"
+    ],
+    "programYear": [],
+    "programModel": [],
+    "cost": [
+      "Free",
+      "Fee"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [],
+    "location": "NB Downtown",
+    "schoolsServed": "All",
+    "schedule": "Tuesday-Sunday",
+    "description": "New Bedford Art Museum offers free interactive gallery lessons to schools and community groups. We also have a popular weekly and quite affordable art-making program for children and their families called KidZone. Our purple artMobile van travels through the city during the summer, engaging children with fun art projects. We also have on-site art camp for children in the summer, and art classes for children throughout the year."
+  },
+  {
+    "id": "new-bedford-ballet",
+    "name": "New Bedford Ballet",
+    "website": "https://www.newbedfordballet.org/",
+    "minAge": 3,
+    "maxAge": 18,
+    "gradeLevels": [
+      "Pre-K",
+      "Elementary",
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Visual Arts/Performing Arts/Culture"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School"
+    ],
+    "cost": [
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Northend",
+    "schoolsServed": "All",
+    "schedule": "Monday-Saturday",
+    "description": null
+  },
+  {
+    "id": "new-bedford-free-public-library",
+    "name": "New Bedford Free Public Library",
+    "website": "https://www.newbedford-ma.gov/library/",
+    "minAge": null,
+    "maxAge": null,
+    "gradeLevels": [
+      "All Ages"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Academic Achievement"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Drop In"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "All",
+    "schedule": "Monday-Saturday",
+    "description": null
+  },
+  {
+    "id": "new-bedford-housing-authority",
+    "name": "New Bedford Housing Authority",
+    "website": "https://newbedfordhousingauthority.org/",
+    "minAge": 6,
+    "maxAge": 15,
+    "gradeLevels": [
+      "Elementary",
+      "Middle"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Academic Achievement"
+    ],
+    "programYear": [
+      "School Year"
+    ],
+    "programModel": [
+      "After School"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Restricted Access"
+    ],
+    "transportation": [],
+    "location": "NB Northend;NB Southend",
+    "schoolsServed": "Gomes, Pacheco",
+    "schedule": "Monday-Thursday",
+    "description": "The NBHA after-school tutoring programs are open to any youth living in public housing and the surrounding community of each program site. Sites for the 2024/2025 academic year are Presidential Heights and Bay Village."
+  },
+  {
+    "id": "new-bedford-rowing-center",
+    "name": "New Bedford Rowing Center",
+    "website": "https://newbedfordrowing.org/",
+    "minAge": 12,
+    "maxAge": null,
+    "gradeLevels": [
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Mentoring/Leadership",
+      "Sports/Recreation"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Before School",
+      "After School",
+      "Partial Day"
+    ],
+    "cost": [
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Drop In"
+    ],
+    "transportation": [],
+    "location": "NB Downtown;Pope's Island",
+    "schoolsServed": "All Middle and High Schools",
+    "schedule": "7 Days",
+    "description": "Under Registration, we ask that participants register in advance via our website or by email at info@newbedfordrowing.org."
+  },
+  {
+    "id": "new-bedford-star-kids-scholarship-program",
+    "name": "New Bedford Star Kids Scholarship Program",
+    "website": "https://newbedfordstarkids.org/",
+    "minAge": 5,
+    "maxAge": 18,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [],
+    "location": "NB Downtown",
+    "schoolsServed": "All",
+    "schedule": "Monday-Friday",
+    "description": "We are a funding program only; K-12 educational & extra curricular funding"
+  },
+  {
+    "id": "new-bedford-symphony-orchestra",
+    "name": "New Bedford Symphony Orchestra",
+    "website": "https://nbsymphony.org/",
+    "minAge": null,
+    "maxAge": 18,
+    "gradeLevels": [
+      "All Ages"
+    ],
+    "earlyEducationServices": [
+      "Care Infant and Toddler",
+      "Care Preschool",
+      "Care School Age"
+    ],
+    "youthServices": [
+      "Visual Arts/Performing Arts/Culture"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Partial Day",
+      "Evening"
+    ],
+    "cost": [
+      "Free",
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [],
+    "location": "NB Northend, NB Westend, NB Southend, Acushnet, Fairhaven, Dartmouth",
+    "schoolsServed": "All",
+    "schedule": "7 Days",
+    "description": null
+  },
+  {
+    "id": "new-bedford-whaling-museum",
+    "name": "New Bedford Whaling Museum",
+    "website": "https://www.whalingmuseum.org/",
+    "minAge": 5,
+    "maxAge": 18,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Academic Achievement",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership",
+      "Science/Nature",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Full Day"
+    ],
+    "cost": [
+      "Free",
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "All Elementary,  All Middle,  All High Schools",
+    "schedule": "Monday-Sunday",
+    "description": null
+  },
+  {
+    "id": "new-bedford-whaling-national-historical-park",
+    "name": "New Bedford Whaling National Historical Park",
+    "website": "https://www.nps.gov/nebe/index.htm",
+    "minAge": null,
+    "maxAge": null,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": null,
+    "schedule": "Wednesday",
+    "description": "We offer a variety of programs throughout the year. We offer a fourth grader camp during spring break. We offer a camp for rising fourth graders in the summer, for two separate weeks. We offer various programming for all ages throughout the year."
+  },
+  {
+    "id": "our-sisters-school",
+    "name": "Our Sisters' School",
+    "website": "https://www.oursistersschool.org/",
+    "minAge": 10,
+    "maxAge": 14,
+    "gradeLevels": [
+      "Middle"
+    ],
+    "earlyEducationServices": [
+      "Care School Age"
+    ],
+    "youthServices": [],
+    "programYear": [
+      "School Year",
+      "Summer"
+    ],
+    "programModel": [
+      "After School",
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "NB Westend",
+    "schoolsServed": "All Elementary",
+    "schedule": "Monday-Friday",
+    "description": "All girls middle school (grades 5-8)"
+  },
+  {
+    "id": "paaca",
+    "name": "PAACA",
+    "website": "https://www.paaca.org/",
+    "minAge": 11,
+    "maxAge": 18,
+    "gradeLevels": [
+      "Elementary",
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Academic Achievement",
+      "Mentoring/Leadership"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Northend",
+    "schoolsServed": "All Elementary, All Middle, All High Schools",
+    "schedule": "Tuesday-Thursday, Saturday",
+    "description": null
+  },
+  {
+    "id": "pace-youthbuild-pace-workforce-development-center",
+    "name": "PACE YouthBuild (PACE Workforce Development Center)",
+    "website": "https://paceinfo.org/programs/pace-youthbuild/",
+    "minAge": 16,
+    "maxAge": null,
+    "gradeLevels": [
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Academic Achievement",
+      "Mentoring/Leadership",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "All High Schools",
+    "schedule": "Monday-Friday",
+    "description": "The PACE Workforce Development Center (WDC) houses both our YouthBuild New Bedford Program as well as our soon to be operational adult program READY (Reaching Employment Access to Discover Your FUTURE).The WDC provides low-income Greater New Bedford residents with quality professional education and training opportunities. Skill building and customized training sessions are available to prepare individuals to reach their workforce goals. Our goal is for individuals to learn professional and productivity skills that will increase access to employment, successful career pathways, and economic self-sufficiency."
+  },
+  {
+    "id": "parks-recreation-beaches",
+    "name": "Parks Recreation & Beaches",
+    "website": "https://www.newbedford-ma.gov/parks-recreation-beaches/",
+    "minAge": 5,
+    "maxAge": null,
+    "gradeLevels": [
+      "Elementary",
+      "Pre-K",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Visual Arts/Performing Arts/Culture",
+      "Sports/Recreation",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Full Day",
+      "Evening"
+    ],
+    "cost": [
+      "Free",
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown, NB Northend, NB Westend, NB Southend",
+    "schoolsServed": "All",
+    "schedule": "7 Days",
+    "description": null
+  },
+  {
+    "id": "st-andrew-s-afterschool-program",
+    "name": "St. Andrew's Afterschool Program",
+    "website": "https://www.standrewsnb.org/afterschool-enrichment-program",
+    "minAge": 5,
+    "maxAge": 11,
+    "gradeLevels": [
+      "Elementary"
+    ],
+    "earlyEducationServices": [
+      "Care Preschool",
+      "Care School Age"
+    ],
+    "youthServices": [],
+    "programYear": [
+      "School Year",
+      "Summer"
+    ],
+    "programModel": [
+      "After School",
+      "Partial Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "NB Northend",
+    "schoolsServed": "Lincoln",
+    "schedule": "Tuesday-Wednesday",
+    "description": null
+  },
+  {
+    "id": "the-marion-institute-inc",
+    "name": "The Marion Institute, Inc.",
+    "website": "https://www.marioninstitute.org/",
+    "minAge": 8,
+    "maxAge": 9,
+    "gradeLevels": [
+      "Elementary"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Science/Nature"
+    ],
+    "programYear": [
+      "School Year"
+    ],
+    "programModel": [
+      "Full Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Restricted Access"
+    ],
+    "transportation": [],
+    "location": "NB Downtown, NB Northend, NB Westend, NB Southend, Westport, Sippican, Wareham. Will expand to other school districts in 2025",
+    "schoolsServed": "All Elementary schools in New Bedford, Westport, Sippican, Wareham",
+    "schedule": "Monday-Friday",
+    "description": "We contract with School districts to implement the Farm to School program, which includes providing services for three years directly with the school district to train teachers on the use of curriculum, putting in raised beds, providing activities and education on food for the 3rd graders. After three years, the school district is responsible for the implementation of the program."
+  },
+  {
+    "id": "the-south-coast-lgbtq-network",
+    "name": "The South Coast LGBTQ+ Network",
+    "website": "https://www.sclgbtqnetwork.org/",
+    "minAge": 12,
+    "maxAge": null,
+    "gradeLevels": [
+      "Middle",
+      "High"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Visual Arts/Performing Arts/Culture"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Partial Day"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Drop In"
+    ],
+    "transportation": [],
+    "location": "NB Downtown",
+    "schoolsServed": "All Middle, All High Schools",
+    "schedule": "7 Days",
+    "description": null
+  },
+  {
+    "id": "the-trustees-mobile-adventures",
+    "name": "The Trustees - Mobile Adventures",
+    "website": "https://thetrustees.org/program/trustees-mobile-adventurer/",
+    "minAge": 6,
+    "maxAge": 12,
+    "gradeLevels": [
+      "Elementary",
+      "Middle"
+    ],
+    "earlyEducationServices": [],
+    "youthServices": [
+      "Science/Nature"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "Weekend Only",
+      "After School",
+      "Evening"
+    ],
+    "cost": [
+      "Free"
+    ],
+    "registration": [
+      "Drop In"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown, NB Northend, NB Westend, NB Southend, Fall River",
+    "schoolsServed": "All Elementary",
+    "schedule": "Monday-Saturday",
+    "description": "Mobile Adventures is a drop-in program of play and exploration program activities that serves children and families at public parks, free lunch programs, and community events."
+  },
+  {
+    "id": "ymca-sc-camp-frederick-douglass",
+    "name": "YMCA SC Camp Frederick Douglass",
+    "website": "https://ymcasouthcoast.org/location/camp-frederick-douglass/",
+    "minAge": 3,
+    "maxAge": 12,
+    "gradeLevels": [
+      "Pre-K",
+      "Elementary",
+      "Middle"
+    ],
+    "earlyEducationServices": [
+      "Care Preschool",
+      "Care School Age"
+    ],
+    "youthServices": [
+      "Sports/Recreation"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Full Day"
+    ],
+    "cost": [
+      "Slide Scale Based on Income",
+      "Fee",
+      "Financial Assistance",
+      "Accepts Child Care Subsidies"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "Ashley, Brooks, Carney, Congdon, DeValles, Hathaway, Hay Mac, Homeschooled, Jacobs, Lincoln, Pacheco, Parker, Rodman, Roosevelt Middle, Sea Lab, Swift, Taylor, Winslow",
+    "schedule": "Monday-Friday",
+    "description": null
+  },
+  {
+    "id": "youth-opportunities-unlimited-inc",
+    "name": "Youth Opportunities Unlimited, Inc.",
+    "website": "https://www.younb.org/",
+    "minAge": 9,
+    "maxAge": 14,
+    "gradeLevels": [
+      "Elementary",
+      "Middle"
+    ],
+    "earlyEducationServices": [
+      "Care School Age"
+    ],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Academic Achievement",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership",
+      "Sports/Recreation",
+      "Science/Nature"
+    ],
+    "programYear": [
+      "Full Year",
+      "School Holidays/ Breaks",
+      "Summer"
+    ],
+    "programModel": [
+      "After School"
+    ],
+    "cost": [
+      "Free",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site",
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Southend",
+    "schoolsServed": "New Bedford and Greater New Bedford Schools, Homeschoolers",
+    "schedule": "Monday-Friday",
+    "description": "The majority of our program is free for those who cannot pay. We do charge program fees for some of our programming to those who can pay. Transportation is provided for the students who take part in the 21st Century Program only. Some of our programs are open to the public, while others are reserved for specific schools/organizations."
+  },
+  {
+    "id": "ywca-southeastern-ma",
+    "name": "YWCA Southeastern MA",
+    "website": "https://ywcasema.org/",
+    "minAge": 5,
+    "maxAge": 13,
+    "gradeLevels": [
+      "Elementary",
+      "Out of School"
+    ],
+    "earlyEducationServices": [
+      "Care School Age"
+    ],
+    "youthServices": [],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School"
+    ],
+    "cost": [
+      "Fee",
+      "Accepts Child Care Subsidies"
+    ],
+    "registration": [
+      "Application Required"
+    ],
+    "transportation": [
+      "Provided To Our Site",
+      "Provided From Our Program Site To Home",
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "Ashley, Alma Del Mar, Carney, Congdon, DeValles, GLCPS, Gomes, Hathaway, Lincoln, Rodman, Swift, Trinity Day Academy, Winslow",
+    "schedule": "Monday-Friday",
+    "description": "Some of the schools that we serve are not on our bus route to pick up but the children are transported to us by the school or due to the child's IEP. Those schools are: Trinity, Global, Alma and other schools from Acushnet. We currently do not have openings on for the bus home. We accept PACE vouchers, we have Income Eligible Slots, DCF referrals and Private Pays."
+  },
+  {
+    "id": "zeiterion-performing-arts-center",
+    "name": "Zeiterion Performing Arts Center",
+    "website": "https://www.zeiterion.org/",
+    "minAge": 3,
+    "maxAge": null,
+    "gradeLevels": [
+      "Pre-K",
+      "Elementary",
+      "Middle",
+      "High",
+      "Out of School"
+    ],
+    "earlyEducationServices": [
+      "Care Infant and Toddler",
+      "Care Preschool",
+      "Care School Age"
+    ],
+    "youthServices": [
+      "Health Safety & Wellness",
+      "Visual Arts/Performing Arts/Culture",
+      "Mentoring/Leadership",
+      "Vocational Readiness"
+    ],
+    "programYear": [
+      "Full Year"
+    ],
+    "programModel": [
+      "After School",
+      "Evening",
+      "Weekend Only"
+    ],
+    "cost": [
+      "Free",
+      "Slide Scale Based on Income",
+      "Fee",
+      "Financial Assistance"
+    ],
+    "registration": [
+      "Application Required",
+      "Drop In"
+    ],
+    "transportation": [
+      "Accessible From Public Transportation"
+    ],
+    "location": "NB Downtown",
+    "schoolsServed": "All, All Elementary, All Middle, All High Schools",
+    "schedule": "7 Days",
+    "description": "Different programs serve different populations, take place at different times, and cost different amounts. Our Teen Ambassador program is exclusively for 13-19 year olds, our SchoolTime performance series is for all school aged children and neurodiverse adult programs, but each show is geared towards a different grade band. Our Creative Classroom has some programming for young people and some programming for adults."
+  }
+]

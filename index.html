@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNBYA Activities Guide</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>GNBYA Activities Guide</h1>
+    <p>Camps, programs, and youth organizations in Greater New Bedford</p>
+  </header>
+
+  <nav class="view-tabs" aria-label="Directory sections">
+    <button type="button" class="view-tab active" id="tab-programs" aria-selected="true">
+      Summer Camps &amp; Programs
+    </button>
+    <button type="button" class="view-tab" id="tab-orgs" aria-selected="false">
+      Year-Round Organizations
+    </button>
+  </nav>
+
+  <!-- ============ Summer Camps & Programs view ============ -->
+  <section id="programs-view">
+    <section class="filters" aria-label="Filter programs">
+      <input type="search" id="search-input" placeholder="Search by name or organization…" aria-label="Search programs">
+
+      <div class="filter-group">
+        <label for="age-input">Child's age</label>
+        <input type="number" id="age-input" min="0" max="18" placeholder="Any">
+      </div>
+
+      <label class="filter-checkbox">
+        <input type="checkbox" id="free-only"> Free or scholarship only
+      </label>
+      <label class="filter-checkbox">
+        <input type="checkbox" id="bus-only"> Bus accessible only
+      </label>
+      <label class="filter-checkbox">
+        <input type="checkbox" id="language-only"> Language support available
+      </label>
+
+      <button type="button" id="clear-filters">Clear filters</button>
+    </section>
+
+    <main id="programs-grid" class="card-grid">
+      <p class="empty-state">Loading programs…</p>
+    </main>
+  </section>
+
+  <!-- ============ Year-Round Organizations view ============ -->
+  <section id="orgs-view" hidden>
+    <section class="filters filters-stacked" aria-label="Filter organizations">
+      <div class="filters-row">
+        <input type="search" id="org-search-input" placeholder="Search organizations…" aria-label="Search organizations">
+
+        <div class="filter-group">
+          <label for="org-age-input">Child's age</label>
+          <input type="number" id="org-age-input" min="0" max="25" placeholder="Any">
+        </div>
+
+        <div class="filter-group">
+          <label for="org-year-select">Program year</label>
+          <select id="org-year-select">
+            <option value="">Any</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="org-model-select">Schedule type</label>
+          <select id="org-model-select">
+            <option value="">Any</option>
+          </select>
+        </div>
+
+        <label class="filter-checkbox">
+          <input type="checkbox" id="org-free-only"> Free or financial help
+        </label>
+
+        <button type="button" id="org-clear-filters">Clear filters</button>
+      </div>
+
+      <div class="filters-row chip-row" id="org-category-chips" aria-label="Filter by service type">
+        <!-- Category chips are rendered by js/app.js from the data itself -->
+      </div>
+    </section>
+
+    <main id="orgs-grid" class="card-grid">
+      <p class="empty-state">Loading organizations…</p>
+    </main>
+  </section>
+
+  <script src="js/csv.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
