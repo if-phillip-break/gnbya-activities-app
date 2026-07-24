@@ -78,7 +78,7 @@ function mapRecordToProgram(record) {
   };
 }
 
-// ---------- year-round organizations ----------
+// ---------- year-round organizations ---------- /
 
 function mapRecordToOrganization(record) {
   const earlyEd = toList(record["Early education services"]);
