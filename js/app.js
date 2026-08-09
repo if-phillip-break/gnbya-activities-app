@@ -226,7 +226,7 @@ function organizationCardHTML(o) {
 
       ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
       ${tagRow(o.categories)}
-      ${o.description ? `<p class="card-desc">${o.description}</p>` : ""}
+      ${o.description ? `<div class="desc-block"><p class="card-desc clampable">${o.description}</p><button type="button" class="see-more-btn" hidden>See more</button></div>` : ""}
       ${o.location ? `<div class="card-address"><span class="address-marker" aria-hidden="true">◆</span><span>${o.location}</span></div>` : ""}
 
       <div class="card-footer">
@@ -345,6 +345,26 @@ function applyFilters() {
   emptyStateEl.hidden = true;
   const cardFn = activeTab === "summer" ? programCardHTML : organizationCardHTML;
   cardGridEl.innerHTML = list.map(cardFn).join("");
+  wireDescriptionClamps();
+}
+
+// After cards are in the DOM, reveal a "See more" toggle only on descriptions
+// that actually overflow their clamped height — short ones show in full.
+function wireDescriptionClamps() {
+  cardGridEl.querySelectorAll(".desc-block").forEach((block) => {
+    const desc = block.querySelector(".card-desc.clampable");
+    const btn = block.querySelector(".see-more-btn");
+    if (!desc || !btn) return;
+    if (desc.scrollHeight <= desc.clientHeight + 2) {
+      btn.hidden = true;
+      return;
+    }
+    btn.hidden = false;
+    btn.addEventListener("click", () => {
+      const expanded = desc.classList.toggle("expanded");
+      btn.textContent = expanded ? "See less" : "See more";
+    });
+  });
 }
 
 function setActiveTab(tab) {
