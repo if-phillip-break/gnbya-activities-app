@@ -23,25 +23,31 @@
 
   <!-- ============ Summer Camps & Programs view ============ -->
   <section id="programs-view">
-    <section class="filters" aria-label="Filter programs">
-      <input type="search" id="search-input" placeholder="Search by name or organization…" aria-label="Search programs">
+    <section class="filters filters-stacked" aria-label="Filter programs">
+      <div class="filters-row">
+        <input type="search" id="search-input" placeholder="Search by name or organization…" aria-label="Search programs">
 
-      <div class="filter-group">
-        <label for="age-input">Child's age</label>
-        <input type="number" id="age-input" min="0" max="18" placeholder="Any">
+        <div class="filter-group">
+          <label for="age-input">Child's age</label>
+          <input type="number" id="age-input" min="0" max="18" placeholder="Any">
+        </div>
+
+        <label class="filter-checkbox">
+          <input type="checkbox" id="free-only"> Free or scholarship only
+        </label>
+        <label class="filter-checkbox">
+          <input type="checkbox" id="bus-only"> Bus accessible only
+        </label>
+        <label class="filter-checkbox">
+          <input type="checkbox" id="language-only"> Language support available
+        </label>
+
+        <button type="button" id="clear-filters">Clear filters</button>
       </div>
 
-      <label class="filter-checkbox">
-        <input type="checkbox" id="free-only"> Free or scholarship only
-      </label>
-      <label class="filter-checkbox">
-        <input type="checkbox" id="bus-only"> Bus accessible only
-      </label>
-      <label class="filter-checkbox">
-        <input type="checkbox" id="language-only"> Language support available
-      </label>
-
-      <button type="button" id="clear-filters">Clear filters</button>
+      <div class="filters-row chip-row" id="program-category-chips" aria-label="Filter by category">
+        <!-- Category chips are rendered by js/app.js from the data itself -->
+      </div>
     </section>
 
     <main id="programs-grid" class="card-grid">

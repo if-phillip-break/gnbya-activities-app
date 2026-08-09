@@ -48,6 +48,17 @@ Leave blank when genuinely not applicable — that's expected, not an error.
 - **Description** — 1-2 plain-text sentences summarizing what the program actually
   does (activities, focus, vibe), written for a parent. Shown (truncated to ~180
   characters) on the card. Leave blank if there's genuinely nothing to add.
+- **Categorization** — one or more activity categories. These become the filter
+  chips above the programs and the tags shown on each card. Separate multiple
+  categories with a semicolon, e.g. `Sports/Recreation; Visual Arts/Performing
+  Arts/Culture`. Whatever names you type become chips automatically, so spelling
+  and capitalization must match **exactly** across rows (otherwise "Sports" and
+  "sports" become two separate chips). To keep this directory consistent with the
+  organizations one, reuse those category names:
+  Academic Achievement, Health Safety & Wellness, Mental Health Services,
+  Mentoring/Leadership, Science/Nature, Sports/Recreation,
+  Visual Arts/Performing Arts/Culture, Vocational Readiness. Leave blank if a
+  program doesn't fit any category yet.
 
 ## Not yet staff-editable
 

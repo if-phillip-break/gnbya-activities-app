@@ -14,6 +14,7 @@ const freeOnlyCheckbox = document.getElementById("free-only");
 const busOnlyCheckbox = document.getElementById("bus-only");
 const languageOnlyCheckbox = document.getElementById("language-only");
 const clearFiltersButton = document.getElementById("clear-filters");
+const programCategoryChips = document.getElementById("program-category-chips");
 
 const orgsGrid = document.getElementById("orgs-grid");
 const orgSearchInput = document.getElementById("org-search-input");
@@ -26,6 +27,7 @@ const orgCategoryChips = document.getElementById("org-category-chips");
 
 let allPrograms = [];
 let allOrganizations = [];
+let selectedProgramCategories = new Set();
 let selectedCategories = new Set();
 
 // ---------- tab switching ----------
@@ -49,6 +51,7 @@ async function loadPrograms() {
   try {
     const records = await fetchRecords(PROGRAMS_CSV_URL);
     allPrograms = records.map(mapRecordToProgram);
+    buildProgramFilterOptions();
     applyProgramFilters();
   } catch (error) {
     console.error("Failed to load programs:", error);
@@ -73,7 +76,7 @@ async function loadOrganizations() {
 function matchesSearch(program, query) {
   if (!query) return true;
   const haystack =
-    `${program.programName} ${program.organizationName} ${program.description || ""}`.toLowerCase();
+    `${program.programName} ${program.organizationName} ${program.description || ""} ${program.categories.join(" ")}`.toLowerCase();
   return haystack.includes(query.toLowerCase());
 }
 
@@ -99,6 +102,42 @@ function matchesLanguageOnly(program) {
   return hasStaffSupport || hasTranslation;
 }
 
+// Builds the category filter chips from the values actually present in the
+// program data, so categories staff add in the sheet appear automatically
+// without a code change. The chip row stays hidden until at least one program
+// has a category — otherwise it'd render as an empty bordered strip.
+function buildProgramFilterOptions() {
+  const categories = new Set();
+  for (const program of allPrograms) {
+    program.categories.forEach((c) => categories.add(c));
+  }
+
+  if (categories.size === 0) {
+    programCategoryChips.hidden = true;
+    return;
+  }
+  programCategoryChips.hidden = false;
+
+  programCategoryChips.innerHTML = [...categories]
+    .sort()
+    .map((cat) => `<button type="button" class="chip" data-category="${cat}">${cat}</button>`)
+    .join("");
+
+  programCategoryChips.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const cat = chip.dataset.category;
+      if (selectedProgramCategories.has(cat)) {
+        selectedProgramCategories.delete(cat);
+        chip.classList.remove("active");
+      } else {
+        selectedProgramCategories.add(cat);
+        chip.classList.add("active");
+      }
+      applyProgramFilters();
+    });
+  });
+}
+
 function applyProgramFilters() {
   const query = searchInput.value.trim();
   const age = ageInput.value === "" ? null : Number(ageInput.value);
@@ -109,6 +148,11 @@ function applyProgramFilters() {
     if (freeOnlyCheckbox.checked && !matchesFreeOnly(program)) return false;
     if (busOnlyCheckbox.checked && !program.busAccessible) return false;
     if (languageOnlyCheckbox.checked && !matchesLanguageOnly(program)) return false;
+    // Category chips combine as OR (same as organizations): picking two
+    // categories shows programs in either, which stays useful as you add more.
+    if (selectedProgramCategories.size > 0 && !program.categories.some((c) => selectedProgramCategories.has(c))) {
+      return false;
+    }
     return true;
   });
 
@@ -227,6 +271,11 @@ function programCardHTML(program) {
         ${program.busAccessible ? `<span class="badge badge-green">🚌 Bus accessible</span>` : ""}
       </div>
 
+      ${program.categories.length ? `
+      <div class="tag-row">
+        ${program.categories.map((c) => `<span class="category-tag">${c}</span>`).join("")}
+      </div>` : ""}
+
       <div class="card-details">
         <p>${program.sessionDates}</p>
         ${program.hours ? `<p>${program.hours}</p>` : ""}
@@ -298,6 +347,8 @@ clearFiltersButton.addEventListener("click", () => {
   freeOnlyCheckbox.checked = false;
   busOnlyCheckbox.checked = false;
   languageOnlyCheckbox.checked = false;
+  selectedProgramCategories.clear();
+  programCategoryChips.querySelectorAll(".chip.active").forEach((c) => c.classList.remove("active"));
   applyProgramFilters();
 });
 

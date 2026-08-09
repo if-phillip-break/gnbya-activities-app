@@ -57,6 +57,9 @@ function mapRecordToProgram(record) {
     organizationName: record["Organization name"],
     gnbyaMember: toBool(record["GNBYA member?"]),
     programName: record["Program name"],
+    // Multi-value "Categorization" cell (semicolon-separated), drives the
+    // filter chips and card tags — mirrors the organizations' categories.
+    categories: toList(record["Categorization"]),
     website: toNullableString(record["Website"]),
     ageRange: {
       min: toNumberOrNull(record["Age min"]),
