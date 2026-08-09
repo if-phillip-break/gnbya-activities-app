@@ -45,6 +45,9 @@ Leave blank when genuinely not applicable — that's expected, not an error.
 - **Address** — e.g. blank for home-visit or no-fixed-location programs.
 - **Staff language support** — e.g. "Yes, Spanish."
 - **Translation available** — comma-separated languages.
+- **Description** — 1-2 plain-text sentences summarizing what the program actually
+  does (activities, focus, vibe), written for a parent. Shown (truncated to ~180
+  characters) on the card. Leave blank if there's genuinely nothing to add.
 
 ## Not yet staff-editable
 

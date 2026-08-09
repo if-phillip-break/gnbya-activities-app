@@ -72,7 +72,8 @@ async function loadOrganizations() {
 
 function matchesSearch(program, query) {
   if (!query) return true;
-  const haystack = `${program.programName} ${program.organizationName}`.toLowerCase();
+  const haystack =
+    `${program.programName} ${program.organizationName} ${program.description || ""}`.toLowerCase();
   return haystack.includes(query.toLowerCase());
 }
 
@@ -230,6 +231,7 @@ function programCardHTML(program) {
         <p>${program.sessionDates}</p>
         ${program.hours ? `<p>${program.hours}</p>` : ""}
         ${program.address ? `<p class="muted">${program.address}</p>` : ""}
+        ${program.description ? `<p class="description">${truncate(program.description, 180)}</p>` : ""}
       </div>
 
       <div class="card-footer">

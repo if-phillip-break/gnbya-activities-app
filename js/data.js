@@ -4,8 +4,8 @@
 // fetched as CSV, parsed, and mapped to app objects. See docs/field-guide.md
 // for the staff-facing description of every column.
 
-// Placeholder sheet for development — swap for the real staff sheet's export
-// URL once it exists.
+// Live staff-editable programs sheet (includes the Description column):
+// https://docs.google.com/spreadsheets/d/1oYJed7Vtqe3TbaG0d1rhDHn796ZOZYnXo3ZpoDYMdC0
 const PROGRAMS_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1oYJed7Vtqe3TbaG0d1rhDHn796ZOZYnXo3ZpoDYMdC0/export?format=csv";
 
@@ -75,6 +75,7 @@ function mapRecordToProgram(record) {
       : null,
     contact: record["Contact"],
     season: toNullableString(record["Season"]) || "summer",
+    description: toNullableString(record["Description"]),
   };
 }
 
