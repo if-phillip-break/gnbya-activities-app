@@ -1,61 +1,389 @@
-// UI: tab switching, filtering, and rendering for both directory views.
+// UI for the single-page Activities Guide: sticky filters, two tabs, cards.
+// Data still comes from the CSV layer (see data.js); this file only filters
+// and renders. Two datasets back the two tabs:
+//   "summer" tab -> allPrograms      (Programs sheet)
+//   "year"   tab -> allOrganizations (Year-Round Organizations directory)
+
+// ---------- constants ----------
+
+// Age is a set of ranges (design uses chips, not a number box). A listing
+// matches a range when its [min,max] overlaps the selected range.
+const AGES = [
+  { label: "Any", min: 0, max: 99 },
+  { label: "5–7", min: 5, max: 7 },
+  { label: "8–10", min: 8, max: 10 },
+  { label: "11–13", min: 11, max: 13 },
+  { label: "14+", min: 14, max: 18 },
+];
+
+// Toggle pills differ per tab: orgs don't carry bus/language flags, so their
+// bar only offers affordability.
+const PROGRAM_TOGGLES = [
+  { key: "free", label: "Free or scholarship" },
+  { key: "bus", label: "Bus accessible" },
+  { key: "lang", label: "Language support" },
+];
+const ORG_TOGGLES = [{ key: "free", label: "Free or financial help" }];
+
+const TABS = [
+  { key: "summer", label: "Summer camps" },
+  { key: "year", label: "Year-round programs" },
+];
 
 // ---------- element lookups ----------
 
-const tabPrograms = document.getElementById("tab-programs");
-const tabOrgs = document.getElementById("tab-orgs");
-const programsView = document.getElementById("programs-view");
-const orgsView = document.getElementById("orgs-view");
-
-const programsGrid = document.getElementById("programs-grid");
 const searchInput = document.getElementById("search-input");
-const ageInput = document.getElementById("age-input");
-const freeOnlyCheckbox = document.getElementById("free-only");
-const busOnlyCheckbox = document.getElementById("bus-only");
-const languageOnlyCheckbox = document.getElementById("language-only");
-const clearFiltersButton = document.getElementById("clear-filters");
-const programCategoryChips = document.getElementById("program-category-chips");
+const ageChipsEl = document.getElementById("age-chips");
+const toggleRowEl = document.getElementById("toggle-row");
+const clearAllBtn = document.getElementById("clear-all");
+const categoryChipsEl = document.getElementById("category-chips");
+const tabsEl = document.getElementById("tabs");
+const resultCountEl = document.getElementById("result-count");
+const cardGridEl = document.getElementById("card-grid");
+const emptyStateEl = document.getElementById("empty-state");
+const emptyClearBtn = document.getElementById("empty-clear");
 
-const orgsGrid = document.getElementById("orgs-grid");
-const orgSearchInput = document.getElementById("org-search-input");
-const orgAgeInput = document.getElementById("org-age-input");
-const orgYearSelect = document.getElementById("org-year-select");
-const orgModelSelect = document.getElementById("org-model-select");
-const orgFreeOnlyCheckbox = document.getElementById("org-free-only");
-const orgClearFiltersButton = document.getElementById("org-clear-filters");
-const orgCategoryChips = document.getElementById("org-category-chips");
+// ---------- state ----------
 
 let allPrograms = [];
 let allOrganizations = [];
-let selectedProgramCategories = new Set();
-let selectedCategories = new Set();
+const dataReady = { summer: false, year: false };
+const loadError = { summer: null, year: null };
 
-// ---------- tab switching ----------
+let activeTab = "summer";
+let query = "";
+let ageLabel = "Any";
+// Toggle + category selections are kept per tab so switching tabs is lossless.
+const toggleState = {
+  summer: { free: false, bus: false, lang: false },
+  year: { free: false },
+};
+const selectedCategories = { summer: new Set(), year: new Set() };
 
-function showView(view) {
-  const isPrograms = view === "programs";
-  programsView.hidden = !isPrograms;
-  orgsView.hidden = isPrograms;
-  tabPrograms.classList.toggle("active", isPrograms);
-  tabOrgs.classList.toggle("active", !isPrograms);
-  tabPrograms.setAttribute("aria-selected", String(isPrograms));
-  tabOrgs.setAttribute("aria-selected", String(!isPrograms));
+// ---------- shared predicates ----------
+
+function programIsFree(p) {
+  return /free|scholarship/i.test(p.cost || "");
+}
+function programHasLanguage(p) {
+  const staff =
+    p.staffLanguageSupport && p.staffLanguageSupport.toLowerCase() !== "no";
+  const trans =
+    Array.isArray(p.translationAvailable) && p.translationAvailable.length > 0;
+  return Boolean(staff || trans);
+}
+function orgIsAffordable(o) {
+  return o.cost.some((c) =>
+    /free|slide scale|financial assistance|subsidies/i.test(c)
+  );
+}
+function ageOverlaps(min, max, range) {
+  if (range.label === "Any") return true;
+  // Listings without numeric ages (grade-based) can't be checked — treat as open.
+  const lo = min == null ? 0 : min;
+  const hi = max == null ? 99 : max;
+  return lo <= range.max && hi >= range.min;
+}
+function currentRange() {
+  return AGES.find((a) => a.label === ageLabel) || AGES[0];
+}
+function anyFilterActive() {
+  const t = toggleState[activeTab];
+  return (
+    query.trim() !== "" ||
+    ageLabel !== "Any" ||
+    Object.values(t).some(Boolean) ||
+    selectedCategories[activeTab].size > 0
+  );
 }
 
-tabPrograms.addEventListener("click", () => showView("programs"));
-tabOrgs.addEventListener("click", () => showView("orgs"));
+// ---------- filtering ----------
 
-// ---------- data loading (each view loads independently so one failure doesn't kill both) ----------
+function filteredList() {
+  const range = currentRange();
+  const q = query.trim().toLowerCase();
+  const t = toggleState[activeTab];
+  const cats = selectedCategories[activeTab];
+
+  if (activeTab === "summer") {
+    return allPrograms.filter((p) => {
+      const hay = `${p.programName} ${p.organizationName} ${p.description || ""} ${p.categories.join(" ")}`.toLowerCase();
+      if (q && !hay.includes(q)) return false;
+      if (!ageOverlaps(p.ageRange.min, p.ageRange.max, range)) return false;
+      if (t.free && !programIsFree(p)) return false;
+      if (t.bus && !p.busAccessible) return false;
+      if (t.lang && !programHasLanguage(p)) return false;
+      if (cats.size > 0 && !p.categories.some((c) => cats.has(c))) return false;
+      return true;
+    });
+  }
+
+  return allOrganizations.filter((o) => {
+    const hay = `${o.name} ${o.description || ""} ${o.categories.join(" ")}`.toLowerCase();
+    if (q && !hay.includes(q)) return false;
+    if (!ageOverlaps(o.minAge, o.maxAge, range)) return false;
+    if (t.free && !orgIsAffordable(o)) return false;
+    if (cats.size > 0 && !o.categories.some((c) => cats.has(c))) return false;
+    return true;
+  });
+}
+
+// ---------- card rendering ----------
+
+function ageBadgeText(minAge, maxAge, fallback) {
+  if (minAge != null && maxAge != null) return `Ages ${minAge}-${maxAge}`;
+  if (minAge != null) return `Ages ${minAge}+`;
+  if (maxAge != null) return `Up to age ${maxAge}`;
+  return fallback;
+}
+
+function factCell(label, value, opts = {}) {
+  const cls = "fact-value" + (opts.big ? " big" : "") + (opts.free ? " cost-free" : "");
+  return `
+    <div class="fact-cell">
+      <div class="fact-label">${label}</div>
+      <div class="${cls}">${value || "—"}</div>
+    </div>`;
+}
+
+function badge(label, tone) {
+  return `<span class="badge ${tone === "info" ? "badge-info" : "badge-plain"}">${label}</span>`;
+}
+
+function tagRow(categories) {
+  if (!categories.length) return "";
+  return `<div class="tag-row">${categories
+    .map((c) => `<span class="category-tag">${c}</span>`)
+    .join("")}</div>`;
+}
+
+function programCardHTML(p) {
+  const badges = [];
+  if (/free/i.test(p.cost || "")) badges.push(badge("Free", "info"));
+  else if (/scholarship/i.test(p.cost || "")) badges.push(badge("Scholarships", "info"));
+  if (p.busAccessible) badges.push(badge("Bus accessible", "plain"));
+  if (programHasLanguage(p)) badges.push(badge("Language support", "plain"));
+
+  return `
+    <article class="card">
+      <div class="card-top">
+        <div style="min-width:0">
+          <p class="card-org">${p.organizationName}</p>
+          <h2 class="card-title">${p.programName}</h2>
+        </div>
+      </div>
+
+      <div class="fact-grid">
+        ${factCell("Ages", p.ageRange.display, { big: true })}
+        ${factCell("Cost", p.cost, { big: true, free: programIsFree(p) })}
+        ${factCell("Dates", p.sessionDates)}
+        ${factCell("Hours", p.hours)}
+      </div>
+
+      ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
+      ${tagRow(p.categories)}
+      ${p.description ? `<p class="card-desc">${p.description}</p>` : ""}
+      ${p.address ? `<div class="card-address"><span class="address-marker" aria-hidden="true">◆</span><span>${p.address}</span></div>` : ""}
+
+      <div class="card-footer">
+        <div class="card-contact">${p.contact || ""}</div>
+        ${p.website ? `<a class="card-action" href="${p.website}" target="_blank" rel="noopener">Sign up →</a>` : ""}
+      </div>
+    </article>`;
+}
+
+function orgCostSummary(o) {
+  if (o.cost.some((c) => /free/i.test(c))) return "Free";
+  if (orgIsAffordable(o)) return "Aid available";
+  if (o.cost.length) return "Fee";
+  return "—";
+}
+
+function organizationCardHTML(o) {
+  const badges = [];
+  if (o.cost.some((c) => /free/i.test(c))) badges.push(badge("Free options", "info"));
+  else if (orgIsAffordable(o)) badges.push(badge("Financial aid", "info"));
+  if (o.transportation && !/^no$/i.test(o.transportation.trim()))
+    badges.push(badge("Transportation", "plain"));
+
+  const whenValue = o.programYear.length ? o.programYear.join(" · ") : "Year-round";
+  const schedValue = o.schedule || (o.programModel.length ? o.programModel.join(" · ") : "");
+  const isFree = o.cost.some((c) => /free/i.test(c));
+
+  return `
+    <article class="card">
+      <div class="card-top">
+        <div style="min-width:0">
+          <h2 class="card-title">${o.name}</h2>
+        </div>
+      </div>
+
+      <div class="fact-grid">
+        ${factCell("Ages", ageBadgeText(o.minAge, o.maxAge, "All ages"), { big: true })}
+        ${factCell("Cost", orgCostSummary(o), { big: true, free: isFree })}
+        ${factCell("When", whenValue)}
+        ${factCell("Schedule", schedValue)}
+      </div>
+
+      ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
+      ${tagRow(o.categories)}
+      ${o.description ? `<p class="card-desc">${o.description}</p>` : ""}
+      ${o.location ? `<div class="card-address"><span class="address-marker" aria-hidden="true">◆</span><span>${o.location}</span></div>` : ""}
+
+      <div class="card-footer">
+        <div class="card-contact">${o.registration.length ? "Registration: " + o.registration.join(", ") : ""}</div>
+        ${o.website ? `<a class="card-action" href="${o.website}" target="_blank" rel="noopener">Visit website →</a>` : ""}
+      </div>
+    </article>`;
+}
+
+// ---------- filter-bar rendering ----------
+
+function renderTabs() {
+  tabsEl.innerHTML = TABS.map(
+    (t) =>
+      `<button type="button" role="tab" class="seg-tab ${t.key === activeTab ? "active" : ""}" data-tab="${t.key}" aria-selected="${t.key === activeTab}">${t.label}</button>`
+  ).join("");
+  tabsEl.querySelectorAll(".seg-tab").forEach((btn) => {
+    btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+  });
+}
+
+function renderAgeChips() {
+  ageChipsEl.innerHTML = AGES.map(
+    (a) =>
+      `<button type="button" class="age-chip ${a.label === ageLabel ? "active" : ""}" data-age="${a.label}">${a.label}</button>`
+  ).join("");
+  ageChipsEl.querySelectorAll(".age-chip").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      ageLabel = btn.dataset.age;
+      ageChipsEl.querySelectorAll(".age-chip").forEach((b) =>
+        b.classList.toggle("active", b.dataset.age === ageLabel)
+      );
+      applyFilters();
+    });
+  });
+}
+
+function renderToggles() {
+  const defs = activeTab === "summer" ? PROGRAM_TOGGLES : ORG_TOGGLES;
+  const t = toggleState[activeTab];
+  toggleRowEl.innerHTML = defs
+    .map(
+      (f) =>
+        `<button type="button" class="toggle-pill ${t[f.key] ? "active" : ""}" data-key="${f.key}">${f.label}</button>`
+    )
+    .join("");
+  toggleRowEl.querySelectorAll(".toggle-pill").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.key;
+      t[key] = !t[key];
+      btn.classList.toggle("active", t[key]);
+      applyFilters();
+    });
+  });
+}
+
+function renderCategoryChips() {
+  const source = activeTab === "summer" ? allPrograms : allOrganizations;
+  const cats = new Set();
+  for (const item of source) (item.categories || []).forEach((c) => cats.add(c));
+
+  if (cats.size === 0) {
+    categoryChipsEl.hidden = true;
+    categoryChipsEl.innerHTML = "";
+    return;
+  }
+  categoryChipsEl.hidden = false;
+  const selected = selectedCategories[activeTab];
+  categoryChipsEl.innerHTML =
+    `<span class="chip-label">Categories</span>` +
+    [...cats]
+      .sort()
+      .map(
+        (c) =>
+          `<button type="button" class="cat-chip ${selected.has(c) ? "active" : ""}" data-category="${c}">${c}</button>`
+      )
+      .join("");
+  categoryChipsEl.querySelectorAll(".cat-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const c = chip.dataset.category;
+      if (selected.has(c)) selected.delete(c);
+      else selected.add(c);
+      chip.classList.toggle("active", selected.has(c));
+      applyFilters();
+    });
+  });
+}
+
+// ---------- main render ----------
+
+function applyFilters() {
+  clearAllBtn.hidden = !anyFilterActive();
+
+  if (loadError[activeTab]) {
+    cardGridEl.innerHTML = `<p class="loading">${loadError[activeTab]}</p>`;
+    emptyStateEl.hidden = true;
+    resultCountEl.textContent = "";
+    return;
+  }
+  if (!dataReady[activeTab]) {
+    cardGridEl.innerHTML = `<p class="loading">Loading…</p>`;
+    emptyStateEl.hidden = true;
+    resultCountEl.textContent = "";
+    return;
+  }
+
+  const list = filteredList();
+  const noun = activeTab === "summer" ? "program" : "organization";
+  resultCountEl.textContent = `${list.length} ${noun}${list.length === 1 ? "" : "s"}`;
+
+  if (list.length === 0) {
+    cardGridEl.innerHTML = "";
+    emptyStateEl.hidden = false;
+    return;
+  }
+  emptyStateEl.hidden = true;
+  const cardFn = activeTab === "summer" ? programCardHTML : organizationCardHTML;
+  cardGridEl.innerHTML = list.map(cardFn).join("");
+}
+
+function setActiveTab(tab) {
+  if (tab === activeTab) return;
+  activeTab = tab;
+  renderTabs();
+  renderToggles();
+  renderCategoryChips();
+  applyFilters();
+}
+
+function clearAll() {
+  query = "";
+  searchInput.value = "";
+  ageLabel = "Any";
+  const t = toggleState[activeTab];
+  Object.keys(t).forEach((k) => (t[k] = false));
+  selectedCategories[activeTab].clear();
+  renderAgeChips();
+  renderToggles();
+  renderCategoryChips();
+  applyFilters();
+}
+
+// ---------- data loading (each tab loads independently) ----------
 
 async function loadPrograms() {
   try {
     const records = await fetchRecords(PROGRAMS_CSV_URL);
     allPrograms = records.map(mapRecordToProgram);
-    buildProgramFilterOptions();
-    applyProgramFilters();
+    dataReady.summer = true;
   } catch (error) {
     console.error("Failed to load programs:", error);
-    programsGrid.innerHTML = `<p class="empty-state">Sorry, we couldn't load programs right now. Please try again later.</p>`;
+    loadError.summer = "Sorry, we couldn't load programs right now. Please try again later.";
+  }
+  if (activeTab === "summer") {
+    renderCategoryChips();
+    applyFilters();
   }
 }
 
@@ -63,311 +391,31 @@ async function loadOrganizations() {
   try {
     const records = await fetchRecords(ORGS_CSV_URL);
     allOrganizations = records.map(mapRecordToOrganization);
-    buildOrgFilterOptions();
-    applyOrgFilters();
+    dataReady.year = true;
   } catch (error) {
     console.error("Failed to load organizations:", error);
-    orgsGrid.innerHTML = `<p class="empty-state">Sorry, we couldn't load organizations right now. Please try again later.</p>`;
+    loadError.year = "Sorry, we couldn't load organizations right now. Please try again later.";
+  }
+  if (activeTab === "year") {
+    renderCategoryChips();
+    applyFilters();
   }
 }
 
-// ---------- programs: filters ----------
+// ---------- init ----------
 
-function matchesSearch(program, query) {
-  if (!query) return true;
-  const haystack =
-    `${program.programName} ${program.organizationName} ${program.description || ""} ${program.categories.join(" ")}`.toLowerCase();
-  return haystack.includes(query.toLowerCase());
-}
-
-function matchesAge(min, max, age) {
-  if (age === null) return true;
-  // Entries without numeric ages (grade-based, "all ages") can't be checked
-  // numerically — show them rather than hide them incorrectly.
-  if (min === null && max === null) return true;
-  if (min !== null && age < min) return false;
-  if (max !== null && age > max) return false;
-  return true;
-}
-
-function matchesFreeOnly(program) {
-  return /free|scholarship/i.test(program.cost || "");
-}
-
-function matchesLanguageOnly(program) {
-  const hasStaffSupport =
-    program.staffLanguageSupport && program.staffLanguageSupport.toLowerCase() !== "no";
-  const hasTranslation =
-    Array.isArray(program.translationAvailable) && program.translationAvailable.length > 0;
-  return hasStaffSupport || hasTranslation;
-}
-
-// Builds the category filter chips from the values actually present in the
-// program data, so categories staff add in the sheet appear automatically
-// without a code change. The chip row stays hidden until at least one program
-// has a category — otherwise it'd render as an empty bordered strip.
-function buildProgramFilterOptions() {
-  const categories = new Set();
-  for (const program of allPrograms) {
-    program.categories.forEach((c) => categories.add(c));
-  }
-
-  if (categories.size === 0) {
-    programCategoryChips.hidden = true;
-    return;
-  }
-  programCategoryChips.hidden = false;
-
-  programCategoryChips.innerHTML = [...categories]
-    .sort()
-    .map((cat) => `<button type="button" class="chip" data-category="${cat}">${cat}</button>`)
-    .join("");
-
-  programCategoryChips.querySelectorAll(".chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const cat = chip.dataset.category;
-      if (selectedProgramCategories.has(cat)) {
-        selectedProgramCategories.delete(cat);
-        chip.classList.remove("active");
-      } else {
-        selectedProgramCategories.add(cat);
-        chip.classList.add("active");
-      }
-      applyProgramFilters();
-    });
-  });
-}
-
-function applyProgramFilters() {
-  const query = searchInput.value.trim();
-  const age = ageInput.value === "" ? null : Number(ageInput.value);
-
-  const filtered = allPrograms.filter((program) => {
-    if (!matchesSearch(program, query)) return false;
-    if (!matchesAge(program.ageRange.min, program.ageRange.max, age)) return false;
-    if (freeOnlyCheckbox.checked && !matchesFreeOnly(program)) return false;
-    if (busOnlyCheckbox.checked && !program.busAccessible) return false;
-    if (languageOnlyCheckbox.checked && !matchesLanguageOnly(program)) return false;
-    // Category chips combine as OR (same as organizations): picking two
-    // categories shows programs in either, which stays useful as you add more.
-    if (selectedProgramCategories.size > 0 && !program.categories.some((c) => selectedProgramCategories.has(c))) {
-      return false;
-    }
-    return true;
-  });
-
-  renderCards(programsGrid, filtered, programCardHTML);
-}
-
-// ---------- organizations: filters ----------
-
-// Builds the Program Year / Schedule type dropdowns and the category chips
-// from the values actually present in the data, so new values added by staff
-// appear automatically without a code change.
-function buildOrgFilterOptions() {
-  const years = new Set();
-  const models = new Set();
-  const categories = new Set();
-  for (const org of allOrganizations) {
-    org.programYear.forEach((y) => years.add(y));
-    org.programModel.forEach((m) => models.add(m));
-    org.categories.forEach((c) => categories.add(c));
-  }
-
-  for (const year of [...years].sort()) {
-    orgYearSelect.insertAdjacentHTML("beforeend", `<option value="${year}">${year}</option>`);
-  }
-  for (const model of [...models].sort()) {
-    orgModelSelect.insertAdjacentHTML("beforeend", `<option value="${model}">${model}</option>`);
-  }
-  orgCategoryChips.innerHTML = [...categories]
-    .sort()
-    .map((cat) => `<button type="button" class="chip" data-category="${cat}">${cat}</button>`)
-    .join("");
-
-  orgCategoryChips.querySelectorAll(".chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const cat = chip.dataset.category;
-      if (selectedCategories.has(cat)) {
-        selectedCategories.delete(cat);
-        chip.classList.remove("active");
-      } else {
-        selectedCategories.add(cat);
-        chip.classList.add("active");
-      }
-      applyOrgFilters();
-    });
-  });
-}
-
-// "Free or financial help" covers everything except plain fee-only listings.
-function orgHasAffordableOption(org) {
-  return org.cost.some((c) =>
-    /free|slide scale|financial assistance|subsidies/i.test(c)
-  );
-}
-
-function applyOrgFilters() {
-  const query = orgSearchInput.value.trim().toLowerCase();
-  const age = orgAgeInput.value === "" ? null : Number(orgAgeInput.value);
-  const year = orgYearSelect.value;
-  const model = orgModelSelect.value;
-
-  const filtered = allOrganizations.filter((org) => {
-    if (query) {
-      const haystack = `${org.name} ${org.description || ""} ${org.categories.join(" ")}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-    if (!matchesAge(org.minAge, org.maxAge, age)) return false;
-    if (year && !org.programYear.includes(year)) return false;
-    if (model && !org.programModel.includes(model)) return false;
-    if (orgFreeOnlyCheckbox.checked && !orgHasAffordableOption(org)) return false;
-    // Category chips combine as OR: picking "Sports" and "Science" means
-    // "show orgs offering either", which stays useful as selections grow —
-    // AND-ing tags across only 43 orgs empties the list almost immediately.
-    if (selectedCategories.size > 0 && !org.categories.some((c) => selectedCategories.has(c))) {
-      return false;
-    }
-    return true;
-  });
-
-  renderCards(orgsGrid, filtered, organizationCardHTML);
-}
-
-// ---------- rendering ----------
-
-function renderCards(grid, items, cardFn) {
-  if (items.length === 0) {
-    grid.innerHTML = `<p class="empty-state">No matches for these filters. Try clearing some.</p>`;
-    return;
-  }
-  grid.innerHTML = items.map(cardFn).join("");
-}
-
-function ageBadgeText(minAge, maxAge, fallback) {
-  if (minAge !== null && maxAge !== null) return `Ages ${minAge}-${maxAge}`;
-  if (minAge !== null) return `Ages ${minAge}+`;
-  if (maxAge !== null) return `Up to age ${maxAge}`;
-  return fallback;
-}
-
-function truncate(text, limit) {
-  if (!text || text.length <= limit) return text;
-  const cut = text.slice(0, limit);
-  return cut.slice(0, cut.lastIndexOf(" ")) + "…";
-}
-
-function programCardHTML(program) {
-  return `
-    <article class="activity-card">
-      <div class="card-header">
-        <h2>${program.programName}</h2>
-        <p class="org-name">${program.organizationName}</p>
-      </div>
-
-      <div class="badge-row">
-        <span class="badge">${program.ageRange.display}</span>
-        ${program.cost ? `<span class="badge badge-cost">${program.cost}</span>` : ""}
-        ${program.busAccessible ? `<span class="badge badge-green">🚌 Bus accessible</span>` : ""}
-      </div>
-
-      ${program.categories.length ? `
-      <div class="tag-row">
-        ${program.categories.map((c) => `<span class="category-tag">${c}</span>`).join("")}
-      </div>` : ""}
-
-      <div class="card-details">
-        <p>${program.sessionDates}</p>
-        ${program.hours ? `<p>${program.hours}</p>` : ""}
-        ${program.address ? `<p class="muted">${program.address}</p>` : ""}
-        ${program.description ? `<p class="description">${truncate(program.description, 180)}</p>` : ""}
-      </div>
-
-      <div class="card-footer">
-        <p class="contact">${program.contact}</p>
-        ${program.website ? `<a href="${program.website}" target="_blank" rel="noopener">Program Website →</a>` : ""}
-      </div>
-    </article>
-  `;
-}
-
-function organizationCardHTML(org) {
-  // Each cost type gets its own badge — one combined badge with nowrap text
-  // grows wider than a phone screen and forces horizontal scrolling.
-  const costBadges = org.cost
-    .map((c) =>
-      c === "Free"
-        ? `<span class="badge badge-green">Free options</span>`
-        : `<span class="badge badge-cost">${c}</span>`
-    )
-    .join("");
-
-  return `
-    <article class="activity-card">
-      <div class="card-header">
-        <h2>${org.name}</h2>
-      </div>
-
-      <div class="badge-row">
-        <span class="badge">${ageBadgeText(org.minAge, org.maxAge, "All ages")}</span>
-        ${costBadges}
-      </div>
-
-      ${org.categories.length ? `
-      <div class="tag-row">
-        ${org.categories.map((c) => `<span class="category-tag">${c}</span>`).join("")}
-      </div>` : ""}
-
-      <div class="card-details">
-        ${org.programModel.length ? `<p>${org.programModel.join(" · ")}</p>` : ""}
-        ${org.schedule ? `<p>${org.schedule}</p>` : ""}
-        ${org.location ? `<p class="muted">${org.location}</p>` : ""}
-        ${org.description ? `<p class="description">${truncate(org.description, 180)}</p>` : ""}
-      </div>
-
-      <div class="card-footer">
-        ${org.registration.length ? `<p class="contact">Registration: ${org.registration.join(", ")}</p>` : ""}
-        ${org.website ? `<a href="${org.website}" target="_blank" rel="noopener">Visit website →</a>` : ""}
-      </div>
-    </article>
-  `;
-}
-
-// ---------- event wiring ----------
-
-searchInput.addEventListener("input", applyProgramFilters);
-ageInput.addEventListener("input", applyProgramFilters);
-freeOnlyCheckbox.addEventListener("change", applyProgramFilters);
-busOnlyCheckbox.addEventListener("change", applyProgramFilters);
-languageOnlyCheckbox.addEventListener("change", applyProgramFilters);
-
-clearFiltersButton.addEventListener("click", () => {
-  searchInput.value = "";
-  ageInput.value = "";
-  freeOnlyCheckbox.checked = false;
-  busOnlyCheckbox.checked = false;
-  languageOnlyCheckbox.checked = false;
-  selectedProgramCategories.clear();
-  programCategoryChips.querySelectorAll(".chip.active").forEach((c) => c.classList.remove("active"));
-  applyProgramFilters();
+searchInput.addEventListener("input", () => {
+  query = searchInput.value;
+  applyFilters();
 });
+clearAllBtn.addEventListener("click", clearAll);
+emptyClearBtn.addEventListener("click", clearAll);
 
-orgSearchInput.addEventListener("input", applyOrgFilters);
-orgAgeInput.addEventListener("input", applyOrgFilters);
-orgYearSelect.addEventListener("change", applyOrgFilters);
-orgModelSelect.addEventListener("change", applyOrgFilters);
-orgFreeOnlyCheckbox.addEventListener("change", applyOrgFilters);
-
-orgClearFiltersButton.addEventListener("click", () => {
-  orgSearchInput.value = "";
-  orgAgeInput.value = "";
-  orgYearSelect.value = "";
-  orgModelSelect.value = "";
-  orgFreeOnlyCheckbox.checked = false;
-  selectedCategories.clear();
-  orgCategoryChips.querySelectorAll(".chip.active").forEach((c) => c.classList.remove("active"));
-  applyOrgFilters();
-});
+renderTabs();
+renderAgeChips();
+renderToggles();
+renderCategoryChips();
+applyFilters();
 
 loadPrograms();
 loadOrganizations();

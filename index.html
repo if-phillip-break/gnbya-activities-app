@@ -4,98 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GNBYA Activities Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+  <!-- ============ Header ============ -->
   <header class="site-header">
-    <h1>GNBYA Activities Guide</h1>
-    <p>Camps, programs, and youth organizations in Greater New Bedford</p>
+    <div class="container header-grid">
+      <div class="header-left">
+        <img class="site-logo" src="assets/gnbya-logo.avif" alt="Greater New Bedford Youth Alliance">
+        <div>
+          <p class="eyebrow">Greater New Bedford Youth Alliance</p>
+          <h1 class="page-title">Find a camp or program for your child</h1>
+        </div>
+      </div>
+
+      <aside class="getting-started">
+        <p class="gs-label">Getting started</p>
+        <ol class="gs-list">
+          <li><span class="gs-num">1</span><span>Enter your child's age to hide programs they can't join.</span></li>
+          <li><span class="gs-num">2</span><span>Use the filters for free spots, bus routes, or language support.</span></li>
+          <li><span class="gs-num">3</span><span>Stuck? Contact the Alliance family line for help choosing.</span></li>
+        </ol>
+      </aside>
+    </div>
   </header>
 
-  <nav class="view-tabs" aria-label="Directory sections">
-    <button type="button" class="view-tab active" id="tab-programs" aria-selected="true">
-      Summer Camps &amp; Programs
-    </button>
-    <button type="button" class="view-tab" id="tab-orgs" aria-selected="false">
-      Year-Round Organizations
-    </button>
-  </nav>
-
-  <!-- ============ Summer Camps & Programs view ============ -->
-  <section id="programs-view">
-    <section class="filters filters-stacked" aria-label="Filter programs">
-      <div class="filters-row">
-        <input type="search" id="search-input" placeholder="Search by name or organization…" aria-label="Search programs">
-
-        <div class="filter-group">
-          <label for="age-input">Child's age</label>
-          <input type="number" id="age-input" min="0" max="18" placeholder="Any">
+  <!-- ============ Sticky filter bar ============ -->
+  <div class="filter-bar">
+    <div class="container filter-inner">
+      <div class="filter-row">
+        <div class="search-wrap">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input type="search" id="search-input" class="search-input"
+                 placeholder="Search camps, clubs, or organizations" aria-label="Search">
         </div>
-
-        <label class="filter-checkbox">
-          <input type="checkbox" id="free-only"> Free or scholarship only
-        </label>
-        <label class="filter-checkbox">
-          <input type="checkbox" id="bus-only"> Bus accessible only
-        </label>
-        <label class="filter-checkbox">
-          <input type="checkbox" id="language-only"> Language support available
-        </label>
-
-        <button type="button" id="clear-filters">Clear filters</button>
+        <div class="age-group">
+          <span class="age-label">Child's age</span>
+          <div class="age-chips" id="age-chips" role="group" aria-label="Filter by age"></div>
+        </div>
       </div>
 
-      <div class="filters-row chip-row" id="program-category-chips" aria-label="Filter by category">
-        <!-- Category chips are rendered by js/app.js from the data itself -->
-      </div>
-    </section>
-
-    <main id="programs-grid" class="card-grid">
-      <p class="empty-state">Loading programs…</p>
-    </main>
-  </section>
-
-  <!-- ============ Year-Round Organizations view ============ -->
-  <section id="orgs-view" hidden>
-    <section class="filters filters-stacked" aria-label="Filter organizations">
-      <div class="filters-row">
-        <input type="search" id="org-search-input" placeholder="Search organizations…" aria-label="Search organizations">
-
-        <div class="filter-group">
-          <label for="org-age-input">Child's age</label>
-          <input type="number" id="org-age-input" min="0" max="25" placeholder="Any">
-        </div>
-
-        <div class="filter-group">
-          <label for="org-year-select">Program year</label>
-          <select id="org-year-select">
-            <option value="">Any</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="org-model-select">Schedule type</label>
-          <select id="org-model-select">
-            <option value="">Any</option>
-          </select>
-        </div>
-
-        <label class="filter-checkbox">
-          <input type="checkbox" id="org-free-only"> Free or financial help
-        </label>
-
-        <button type="button" id="org-clear-filters">Clear filters</button>
+      <div class="filter-row filter-row-toggles">
+        <div class="toggle-row" id="toggle-row" role="group" aria-label="Quick filters"></div>
+        <button type="button" id="clear-all" class="clear-all" hidden>Clear all</button>
       </div>
 
-      <div class="filters-row chip-row" id="org-category-chips" aria-label="Filter by service type">
-        <!-- Category chips are rendered by js/app.js from the data itself -->
-      </div>
-    </section>
+      <div class="filter-row chip-row" id="category-chips" aria-label="Filter by category" hidden></div>
+    </div>
+  </div>
 
-    <main id="orgs-grid" class="card-grid">
-      <p class="empty-state">Loading organizations…</p>
-    </main>
-  </section>
+  <!-- ============ Results ============ -->
+  <main class="container results">
+    <div class="results-toolbar">
+      <div class="segmented" id="tabs" role="tablist" aria-label="Directory sections"></div>
+      <div class="result-count" id="result-count" aria-live="polite"></div>
+    </div>
+
+    <div class="card-grid" id="card-grid">
+      <p class="loading">Loading…</p>
+    </div>
+
+    <div class="empty-state" id="empty-state" hidden>
+      <p class="empty-title">No programs match those filters</p>
+      <p class="empty-help">Try widening the age range or clearing a filter.</p>
+      <button type="button" id="empty-clear" class="clear-all-btn">Clear all filters</button>
+    </div>
+  </main>
+
+  <!-- ============ Footer ============ -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-help">Need help choosing or applying? Contact the Alliance family line for support in multiple languages.</div>
+      <div class="footer-meta">Listings updated weekly by participating organizations.</div>
+    </div>
+  </footer>
 
   <script src="js/csv.js" defer></script>
   <script src="js/data.js" defer></script>

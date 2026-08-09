@@ -1,374 +1,524 @@
-/* Palette sampled directly from gnbya.org's live computed CSS (indigo title,
-   green nav links, purple "current page" nav state) — not an approximation. */
+/* GNBYA Activities Guide — parent-facing redesign.
+   Tokens taken directly from docs/redesign-for-family-help-webpage design handoff. */
 :root {
-  --color-primary: #2e3294;   /* GNBYA site title / brand indigo */
-  --color-secondary: #532563; /* GNBYA nav "current page" purple */
-  --color-success: #4ba225;   /* GNBYA nav link green */
-  --color-text: #1a1a1a;      /* GNBYA body copy is true black; softened slightly */
-  --color-gray: #6b7280;
-  --color-gray-light: #e5e7eb;
-  --color-bg: #fafafa;
+  /* Brand greens */
+  --green: #157F3D;
+  --green-dark: #0E6430;
+  --ink-green: #12351F;
+  /* Harbor blue accent (links, info badges) */
+  --blue: #1B6FA8;
+  --blue-hover: #14547E;
+  /* Neutrals */
+  --page: #F4F7F5;
+  --surface: #FFFFFF;
+  --subtle: #F1F7F3;
+  --subtle-2: #F8FBF9;
+  --footer-bg: #EAF1EC;
+  --border: #DCE5DE;
+  --border-2: #CFDCD3;
+  --hairline: #E4EBE6;
+  --divider: #E7EEE9;
+  /* Text */
+  --text: #1C2B21;
+  --text-2: #3F4F45;
+  --muted: #4F5F55;
+  --faint: #6C7C72;
 }
 
-/* Basic reset so browsers' default spacing doesn't fight our layout */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  background: var(--page);
+  font-family: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
   line-height: 1.5;
-  color: var(--color-text);
-  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
 }
 
+a { color: var(--blue); text-decoration: none; }
+a:hover { color: var(--blue-hover); text-decoration: underline; }
+input, button, select { font-family: inherit; }
+
+/* Horizontal-only padding so vertical spacing is set per-region */
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+/* ---------------- Header ---------------- */
 .site-header {
-  padding: 1.5rem 1rem;
-  background-color: #ffffff;
-  border-bottom: 3px solid var(--color-primary);
-  text-align: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
-.site-header h1 {
-  font-size: 1.75rem;
-  color: var(--color-primary);
-  margin-bottom: 0.25rem;
-}
-
-.site-header p {
-  color: var(--color-gray);
-}
-
-/* View tabs (Programs vs Organizations) */
-.view-tabs {
-  max-width: 1000px;
-  margin: 1.25rem auto 0;
-  padding: 0 1rem;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.view-tab {
-  flex: 1;
-  padding: 0.6rem 1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-gray);
-  background-color: #ffffff;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 4px 4px 0 0;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-}
-
-.view-tab.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
-
-.view-tab:hover:not(.active) {
-  color: var(--color-secondary);
-}
-
-.filters {
-  max-width: 1000px;
-  margin: 1rem auto 0;
-  padding: 1rem;
-  background-color: #ffffff;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 4px;
-  display: flex;
-  flex-wrap: wrap;
+.header-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+  gap: 40px;
   align-items: center;
-  gap: 1rem;
-  position: sticky;
-  top: 0.5rem;
-  z-index: 10;
+  padding-top: 22px;
 }
 
-/* Organizations filter bar stacks two rows: controls, then category chips */
-.filters-stacked {
+.header-left {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  padding-bottom: 16px;
+}
+
+.site-logo {
+  height: 96px;
+  width: auto;
+  display: block;
+  flex: none;
+  border-radius: 8px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.page-title {
+  margin: 0;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 800;
+  font-size: 42px;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: var(--ink-green);
+}
+
+.getting-started {
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.gs-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.gs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
+  gap: 10px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: #2B3B31;
 }
 
-.filters-row {
+.gs-list li { display: flex; gap: 10px; align-items: baseline; }
+.gs-num { font-family: "Montserrat", sans-serif; font-weight: 800; color: var(--green); }
+
+/* ---------------- Filter bar ---------------- */
+.filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(250, 247, 242, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-inner {
+  padding-top: 18px;
+  padding-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.filter-row {
   display: flex;
   flex-wrap: wrap;
+  gap: 12px;
   align-items: center;
-  gap: 1rem;
 }
 
-.filters select {
-  padding: 0.4rem;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 4px;
-  background-color: #ffffff;
-  font-size: 0.9rem;
-  color: var(--color-text);
+.filter-row-toggles { justify-content: space-between; }
+
+.search-wrap { position: relative; flex: 1 1 300px; min-width: 260px; }
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--faint);
+  pointer-events: none;
 }
 
-/* Category filter chips (toggle buttons) */
-.chip-row {
-  gap: 0.4rem;
-  border-top: 1px solid var(--color-gray-light);
-  padding-top: 0.75rem;
+.search-input {
+  width: 100%;
+  padding: 14px 16px 14px 42px;
+  border: 1.5px solid var(--border-2);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 16px;
+  color: var(--text);
+  outline: none;
+}
+.search-input:focus { border-color: var(--green); }
+
+.age-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-2);
+  border-radius: 12px;
+  padding: 6px 6px 6px 14px;
 }
 
-.chip {
-  padding: 0.25rem 0.7rem;
-  font-size: 0.8rem;
+.age-label { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.age-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.age-chip {
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  border-radius: 9px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-secondary);
-  background-color: #ffffff;
-  border: 1px solid var(--color-secondary);
-  border-radius: 999px;
+  padding: 9px 14px;
   cursor: pointer;
+  transition: all 0.12s;
 }
+.age-chip:hover:not(.active) { background: rgba(21, 127, 61, 0.08); }
+.age-chip.active { background: var(--green); color: #fff; }
 
-.chip:hover {
-  background-color: rgba(83, 37, 99, 0.08);
+.toggle-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.toggle-pill {
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1.5px solid var(--border-2);
+  transition: all 0.12s;
 }
+.toggle-pill:hover:not(.active) { border-color: var(--green); color: var(--green); }
+.toggle-pill.active { background: var(--green); color: #fff; border-color: var(--green); }
 
-.chip.active {
-  background-color: var(--color-secondary);
-  color: #ffffff;
-}
-
-.filters input[type="search"] {
-  flex: 1 1 220px;
-  padding: 0.5rem;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 4px;
-  font-size: 0.95rem;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-group input[type="number"] {
-  width: 5rem;
-  padding: 0.4rem;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 4px;
-}
-
-.filter-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.9rem;
+.clear-all {
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 8px 4px;
   white-space: nowrap;
 }
 
-#clear-filters,
-#org-clear-filters {
-  padding: 0.5rem 0.9rem;
-  border: 1px solid var(--color-primary);
-  border-radius: 4px;
-  background-color: #ffffff;
-  color: var(--color-primary);
+/* Category chip row (kept from the previous categorization feature) */
+.chip-row {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.chip-row .chip-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-right: 2px;
+}
+
+.cat-chip {
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
   cursor: pointer;
-  font-size: 0.9rem;
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1.5px solid var(--border-2);
+  transition: all 0.12s;
+}
+.cat-chip:hover:not(.active) { border-color: var(--green); color: var(--green); }
+.cat-chip.active { background: var(--green); color: #fff; border-color: var(--green); }
+
+/* ---------------- Results toolbar ---------------- */
+.results { padding-top: 26px; padding-bottom: 72px; }
+
+.results-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
-#clear-filters:hover,
-#org-clear-filters:hover {
-  background-color: var(--color-primary);
-  color: #ffffff;
+.segmented {
+  display: flex;
+  gap: 6px;
+  background: var(--divider);
+  padding: 5px;
+  border-radius: 12px;
 }
 
-.empty-state {
-  grid-column: 1 / -1;
-  text-align: center;
-  color: var(--color-gray);
-  padding: 2rem 0;
+.seg-tab {
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  transition: all 0.12s;
+}
+.seg-tab.active {
+  background: var(--surface);
+  color: var(--green);
+  box-shadow: 0 1px 3px rgba(22, 48, 43, 0.12);
 }
 
+.result-count { font-size: 15px; color: var(--muted); font-weight: 500; }
+
+.loading { grid-column: 1 / -1; color: var(--faint); padding: 2rem 0; text-align: center; }
+
+/* ---------------- Card grid + cards ---------------- */
 .card-grid {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 1rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 345px), 1fr));
+  gap: 18px;
 }
 
-.activity-card {
-  background-color: #ffffff;
-  border: 1px solid var(--color-gray-light);
-  border-left: 4px solid var(--color-primary);
-  border-radius: 4px;
-  padding: 1rem;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-  /* Long unbreakable strings (URLs in descriptions) must wrap, not overflow */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 1px 2px rgba(22, 48, 43, 0.04);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
   overflow-wrap: break-word;
 }
-
-.activity-card:hover {
-  box-shadow: 0 2px 10px rgba(46, 50, 148, 0.15);
-  transform: translateY(-2px);
+.card:hover {
+  box-shadow: 0 8px 24px rgba(22, 48, 43, 0.10);
+  border-color: #D2C8B8;
 }
 
-.card-header {
-  margin-bottom: 0.6rem;
-}
-
-.activity-card h2 {
-  font-size: 1.1rem;
-  color: var(--color-primary);
-  margin-bottom: 0.15rem;
-}
-
-.activity-card .org-name {
-  color: var(--color-gray);
-  font-size: 0.85rem;
-}
-
-/* Quick-scan facts (age, cost, bus access) as pills, so the two things a
-   parent checks first don't require reading full sentences. */
-.badge-row {
+.card-top {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 0.7rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
+
+.card-org {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--faint);
+  margin: 0 0 5px;
+}
+
+.card-title {
+  margin: 0;
+  font-family: "Montserrat", sans-serif;
+  font-size: 23px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* 2×2 fact grid — 1px gaps over a hairline background read as dividers */
+.fact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.fact-cell { background: var(--subtle-2); padding: 11px 13px; }
+
+.fact-label {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--faint);
+}
+
+.fact-value {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 3px;
+  line-height: 1.3;
+  color: var(--text);
+}
+.fact-value.big {
+  font-family: "Montserrat", sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.fact-value.cost-free { color: var(--green-dark); }
+
+.badge-row { display: flex; gap: 7px; flex-wrap: wrap; }
 
 .badge {
-  display: inline-block;
-  background-color: rgba(46, 50, 148, 0.08);
-  color: var(--color-primary);
-  font-size: 0.8rem;
+  font-size: 12.5px;
   font-weight: 600;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 8px;
 }
+.badge-info { background: #E3F0F8; color: var(--blue); }
+.badge-plain { background: var(--footer-bg); color: var(--text-2); }
 
-.badge-cost {
-  background-color: rgba(83, 37, 99, 0.1);
-  color: var(--color-secondary);
-}
-
-.badge-green {
-  background-color: rgba(75, 162, 37, 0.12);
-  color: var(--color-success);
-}
-
-/* Service category tags on organization cards — outlined, quieter than badges */
-.tag-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-bottom: 0.7rem;
-}
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .category-tag {
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--color-gray);
-  border: 1px solid var(--color-gray-light);
+  color: var(--muted);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  white-space: nowrap;
+  padding: 3px 10px;
+  background: var(--surface);
 }
 
-.card-details .description {
-  color: var(--color-gray);
-  font-size: 0.88rem;
-  margin-top: 0.4rem;
+.card-desc {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text-2);
 }
 
-.card-details p {
-  margin-bottom: 0.3rem;
-  font-size: 0.95rem;
+.card-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.4;
 }
-
-.card-details .muted {
-  color: var(--color-gray);
-  font-size: 0.85rem;
-}
+.address-marker { color: var(--blue); }
 
 .card-footer {
-  margin-top: 0.75rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--color-gray-light);
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.activity-card .contact {
-  color: var(--color-gray);
-  font-size: 0.85rem;
-  margin-bottom: 0.3rem;
-}
+.card-contact { font-size: 13px; color: var(--faint); line-height: 1.35; min-width: 0; }
 
-.activity-card a {
-  color: var(--color-success);
+.card-action {
+  flex: none;
+  background: var(--green);
+  color: #fff;
+  font-size: 14px;
   font-weight: 600;
-  text-decoration: none;
-  font-size: 0.9rem;
+  padding: 10px 16px;
+  border-radius: 10px;
+  white-space: nowrap;
 }
+.card-action:hover { background: var(--green-dark); color: #fff; text-decoration: none; }
 
-.activity-card a:hover {
-  text-decoration: underline;
+/* ---------------- Empty state ---------------- */
+.empty-state {
+  text-align: center;
+  padding: 64px 20px;
+  border: 1.5px dashed var(--border-2);
+  border-radius: 18px;
+  background: var(--surface);
 }
+.empty-title {
+  margin: 0 0 8px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.empty-help { margin: 0 0 18px; color: var(--muted); font-size: 15px; }
 
-/* Consistent, visible keyboard-focus ring across all interactive elements */
+.clear-all-btn {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.clear-all-btn:hover { background: var(--green-dark); }
+
+/* ---------------- Footer ---------------- */
+.site-footer { border-top: 1px solid var(--border); background: var(--footer-bg); }
+.footer-inner {
+  padding-top: 28px;
+  padding-bottom: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-help { font-size: 14.5px; color: var(--text-2); max-width: 560px; line-height: 1.5; }
+.footer-meta { font-size: 13px; color: var(--faint); }
+
+/* ---------------- Focus ring ---------------- */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--green);
   outline-offset: 2px;
 }
 
-/* Below ~600px: stack the filter bar into a single column so nothing gets
-   cramped or forces horizontal scrolling on a phone. */
+/* ---------------- Responsive ---------------- */
+@media (max-width: 860px) {
+  .header-grid { grid-template-columns: 1fr; gap: 20px; }
+  .getting-started { margin-bottom: 22px; }
+}
+
 @media (max-width: 600px) {
-  .filters,
-  .filters-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filters {
-    position: static;
-  }
-
-  .filters input[type="search"] {
-    flex: none;
-    width: 100%;
-  }
-
-  .filter-group,
-  .filter-checkbox {
-    width: 100%;
-  }
-
-  .filter-group select {
-    flex: 1;
-  }
-
-  #clear-filters,
-  #org-clear-filters {
-    width: 100%;
-  }
-
-  /* Chips stay in a wrapping row even on mobile — a column of 11 full-width
-     category buttons would push the results too far down the page. */
-  .chip-row {
-    flex-direction: row;
-  }
-
-  .view-tab {
-    font-size: 0.85rem;
-    padding: 0.5rem 0.5rem;
-  }
-
-  .site-header h1 {
-    font-size: 1.4rem;
-  }
+  .container { padding-left: 20px; padding-right: 20px; }
+  .page-title { font-size: 30px; }
+  .site-logo { height: 72px; }
+  .header-left { gap: 16px; }
+  .age-group { width: 100%; }
+  .search-wrap { flex: 1 1 100%; }
+  .results-toolbar { align-items: stretch; }
+  .segmented { width: 100%; }
+  .seg-tab { flex: 1; }
 }
