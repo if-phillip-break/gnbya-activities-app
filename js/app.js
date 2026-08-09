@@ -203,8 +203,7 @@ function organizationCardHTML(o) {
   const badges = [];
   if (o.cost.some((c) => /free/i.test(c))) badges.push(badge("Free options", "info"));
   else if (orgIsAffordable(o)) badges.push(badge("Financial aid", "info"));
-  if (o.transportation && !/^no$/i.test(o.transportation.trim()))
-    badges.push(badge("Transportation", "plain"));
+  if (o.transportation.length) badges.push(badge("Transportation", "plain"));
 
   const whenValue = o.programYear.length ? o.programYear.join(" · ") : "Year-round";
   const schedValue = o.schedule || (o.programModel.length ? o.programModel.join(" · ") : "");
