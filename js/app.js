@@ -236,7 +236,7 @@ function programCardHTML(program) {
 
       <div class="card-footer">
         <p class="contact">${program.contact}</p>
-        ${program.website ? `<a href="${program.website}" target="_blank" rel="noopener">Learn more →</a>` : ""}
+        ${program.website ? `<a href="${program.website}" target="_blank" rel="noopener">Program Website →</a>` : ""}
       </div>
     </article>
   `;
