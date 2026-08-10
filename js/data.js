@@ -4,10 +4,11 @@
 // fetched as CSV, parsed, and mapped to app objects. See docs/field-guide.md
 // for the staff-facing description of every column.
 
-// Live staff-editable programs sheet (includes the Description column):
-// https://docs.google.com/spreadsheets/d/1oYJed7Vtqe3TbaG0d1rhDHn796ZOZYnXo3ZpoDYMdC0
+// Programs come from the "Live listings" tab of the intake spreadsheet — a
+// FILTER view that publishes only rows a staff member approved (Show on site =
+// TRUE). Fed by a Google Form; see docs/form-intake-setup.md.
 const PROGRAMS_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/1oYJed7Vtqe3TbaG0d1rhDHn796ZOZYnXo3ZpoDYMdC0/export?format=csv";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOv1GOvvxbbs45Zhnr7fLXKojgM6IvwChxO7omeJbnfWw1ziupuekM_x6jaSiTXgWJa35LbXUL17ww/pub?gid=1329653144&single=true&output=csv";
 
 // Organizations placeholder sheet:
 // https://docs.google.com/spreadsheets/d/17GgTCCFufEu5ubDUKBWE-vdZjBNQA4TUHHdCsKF5cUg
@@ -42,6 +43,13 @@ function toList(value) {
   return value.split(";").map((s) => s.trim()).filter(Boolean);
 }
 
+// Categorization may arrive semicolon-separated (typed by hand) or comma-separated
+// (Google Forms joins checkbox answers with commas) — accept either separator.
+function toCategoryList(value) {
+  if (!value) return [];
+  return value.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+}
+
 function slugify(text) {
   return text
     .toLowerCase()
@@ -53,28 +61,28 @@ function slugify(text) {
 
 function mapRecordToProgram(record) {
   return {
-    id: slugify(`${record["Organization name"]}-${record["Program name"]}`),
-    organizationName: record["Organization name"],
+    id: slugify(`${record["Organization Name"]}-${record["Program Name"]}`),
+    organizationName: record["Organization Name"],
     gnbyaMember: toBool(record["GNBYA member?"]),
-    programName: record["Program name"],
-    // Multi-value "Categorization" cell (semicolon-separated), drives the
-    // filter chips and card tags — mirrors the organizations' categories.
-    categories: toList(record["Categorization"]),
+    programName: record["Program Name"],
+    // Categorization drives the filter chips and card tags; accepts comma- or
+    // semicolon-separated values (see toCategoryList).
+    categories: toCategoryList(record["Categorization"]),
     website: toNullableString(record["Website"]),
     ageRange: {
-      min: toNumberOrNull(record["Age min"]),
-      max: toNumberOrNull(record["Age max"]),
-      display: record["Ages or grades"],
+      min: toNumberOrNull(record["Age Minimum"]),
+      max: toNumberOrNull(record["Age Maximum"]),
+      display: record["Ages or Grades"],
     },
-    sessionDates: toNullableString(record["Session dates"]),
+    sessionDates: toNullableString(record["Session Dates"]),
     hours: toNullableString(record["Hours"]),
     cost: toNullableString(record["Cost"]),
     address: toNullableString(record["Address"]),
-    busAccessible: toBool(record["Bus accessible?"]),
-    nearestBusRoute: toNullableString(record["Nearest bus route/stop"]),
-    staffLanguageSupport: toNullableString(record["Staff language support"]),
-    translationAvailable: record["Translation available"]
-      ? record["Translation available"].split(",").map((s) => s.trim())
+    busAccessible: toBool(record["Bus Accessible?"]),
+    nearestBusRoute: toNullableString(record["Nearest Bus Route/Stop"]),
+    staffLanguageSupport: toNullableString(record["Staff Language Support"]),
+    translationAvailable: record["Translation Available"]
+      ? record["Translation Available"].split(",").map((s) => s.trim())
       : null,
     contact: record["Contact"],
     season: toNullableString(record["Season"]) || "summer",
