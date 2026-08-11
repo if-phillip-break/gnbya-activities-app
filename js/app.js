@@ -23,11 +23,33 @@ const PROGRAM_TOGGLES = [
   { key: "bus", label: "Bus accessible" },
   { key: "lang", label: "Language support" },
 ];
-const ORG_TOGGLES = [{ key: "free", label: "Free or financial help" }];
+// Organizations filter via the multi-select facet menus (ORG_FACETS) instead of
+// a quick-toggle row, so their toggle row is empty.
+const ORG_TOGGLES = [];
 
 const TABS = [
   { key: "summer", label: "Summer camps" },
-  { key: "year", label: "Year-round programs" },
+  { key: "year", label: "GNBYA Organizations" },
+];
+
+// Faceted (multi-select dropdown) filters for the Organizations tab. Each reads a
+// list-valued field on the org object; options are derived from the data, ordered
+// by the canonical `order` when given (values outside it fall back to alphabetical).
+// Data-driven on purpose: when the org intake form/feed is wired up later, any new
+// values appear automatically — same architecture as the programs pipeline.
+const ORG_FACETS = [
+  { key: "programYear", label: "Program Year", field: "programYear",
+    order: ["Full Year", "Full Year With Limited Winter Programs", "School Year", "School Holidays/ Breaks", "Summer"] },
+  { key: "programModel", label: "Program Model", field: "programModel",
+    order: ["Before School", "After School", "Full Day", "Partial Day", "Evening", "Weekend Only", "Summer Only"] },
+  { key: "gradeLevels", label: "Grade Levels", field: "gradeLevels",
+    order: ["Infant/Toddler", "Pre-K", "Elementary", "Middle", "High", "Out of School", "All Ages"] },
+  { key: "cost", label: "Cost", field: "cost",
+    order: ["Free", "Fee", "Financial Assistance", "Slide Scale Based on Income", "Accepts Child Care Subsidies"] },
+  { key: "registration", label: "Registration", field: "registration",
+    order: ["Drop In", "Application Required", "Restricted Access"] },
+  { key: "transportation", label: "Transportation", field: "transportation" },
+  { key: "categories", label: "Categories", field: "categories" },
 ];
 
 // ---------- element lookups ----------
@@ -37,6 +59,7 @@ const ageChipsEl = document.getElementById("age-chips");
 const toggleRowEl = document.getElementById("toggle-row");
 const clearAllBtn = document.getElementById("clear-all");
 const categoryChipsEl = document.getElementById("category-chips");
+const facetMenusEl = document.getElementById("facet-menus");
 const tabsEl = document.getElementById("tabs");
 const resultCountEl = document.getElementById("result-count");
 const cardGridEl = document.getElementById("card-grid");
@@ -56,9 +79,13 @@ let ageLabel = "Any";
 // Toggle + category selections are kept per tab so switching tabs is lossless.
 const toggleState = {
   summer: { free: false, bus: false, lang: false },
-  year: { free: false },
+  year: {},
 };
-const selectedCategories = { summer: new Set(), year: new Set() };
+// Summer categories are chips; org categories are one of the facet menus.
+const selectedCategories = { summer: new Set() };
+// Per-facet selections for the Organizations tab (one Set per ORG_FACETS entry).
+const selectedFacets = {};
+ORG_FACETS.forEach((f) => (selectedFacets[f.key] = new Set()));
 
 // ---------- shared predicates ----------
 
@@ -88,13 +115,29 @@ function currentRange() {
   return AGES.find((a) => a.label === ageLabel) || AGES[0];
 }
 function anyFilterActive() {
-  const t = toggleState[activeTab];
-  return (
-    query.trim() !== "" ||
-    ageLabel !== "Any" ||
-    Object.values(t).some(Boolean) ||
-    selectedCategories[activeTab].size > 0
-  );
+  if (query.trim() !== "" || ageLabel !== "Any") return true;
+  if (activeTab === "summer") {
+    return (
+      Object.values(toggleState.summer).some(Boolean) ||
+      selectedCategories.summer.size > 0
+    );
+  }
+  return ORG_FACETS.some((f) => selectedFacets[f.key].size > 0);
+}
+
+// Order facet values by a canonical list when given; unknown values sort last,
+// alphabetically.
+function orderedValues(values, order) {
+  const arr = [...values];
+  if (!order) return arr.sort((a, b) => a.localeCompare(b));
+  return arr.sort((a, b) => {
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
 }
 
 // ---------- filtering ----------
@@ -102,10 +145,10 @@ function anyFilterActive() {
 function filteredList() {
   const range = currentRange();
   const q = query.trim().toLowerCase();
-  const t = toggleState[activeTab];
-  const cats = selectedCategories[activeTab];
 
   if (activeTab === "summer") {
+    const t = toggleState.summer;
+    const cats = selectedCategories.summer;
     return allPrograms.filter((p) => {
       const hay = `${p.programName} ${p.organizationName} ${p.description || ""} ${p.categories.join(" ")}`.toLowerCase();
       if (q && !hay.includes(q)) return false;
@@ -122,8 +165,13 @@ function filteredList() {
     const hay = `${o.name} ${o.description || ""} ${o.categories.join(" ")}`.toLowerCase();
     if (q && !hay.includes(q)) return false;
     if (!ageOverlaps(o.minAge, o.maxAge, range)) return false;
-    if (t.free && !orgIsAffordable(o)) return false;
-    if (cats.size > 0 && !o.categories.some((c) => cats.has(c))) return false;
+    // Facet menus: OR within a facet, AND across facets.
+    for (const f of ORG_FACETS) {
+      const sel = selectedFacets[f.key];
+      if (sel.size === 0) continue;
+      const vals = o[f.field] || [];
+      if (!vals.some((v) => sel.has(v))) return false;
+    }
     return true;
   });
 }
@@ -284,9 +332,15 @@ function renderToggles() {
 }
 
 function renderCategoryChips() {
-  const source = activeTab === "summer" ? allPrograms : allOrganizations;
+  // Categories are chips on the Summer tab; on the Organizations tab they're one
+  // of the facet menus instead, so hide the chip row there.
+  if (activeTab !== "summer") {
+    categoryChipsEl.hidden = true;
+    categoryChipsEl.innerHTML = "";
+    return;
+  }
   const cats = new Set();
-  for (const item of source) (item.categories || []).forEach((c) => cats.add(c));
+  for (const item of allPrograms) (item.categories || []).forEach((c) => cats.add(c));
 
   if (cats.size === 0) {
     categoryChipsEl.hidden = true;
@@ -294,7 +348,7 @@ function renderCategoryChips() {
     return;
   }
   categoryChipsEl.hidden = false;
-  const selected = selectedCategories[activeTab];
+  const selected = selectedCategories.summer;
   categoryChipsEl.innerHTML =
     `<span class="chip-label">Categories</span>` +
     [...cats]
@@ -311,6 +365,85 @@ function renderCategoryChips() {
       else selected.add(c);
       chip.classList.toggle("active", selected.has(c));
       applyFilters();
+    });
+  });
+}
+
+// ---------- organizations: facet dropdown menus ----------
+
+function closeAllFacetMenus() {
+  facetMenusEl.querySelectorAll(".facet-menu").forEach((m) => (m.hidden = true));
+  facetMenusEl.querySelectorAll(".facet-btn").forEach((b) =>
+    b.setAttribute("aria-expanded", "false")
+  );
+}
+
+function renderFacetMenus() {
+  // Facet menus only exist on the Organizations tab.
+  if (activeTab !== "year") {
+    facetMenusEl.hidden = true;
+    facetMenusEl.innerHTML = "";
+    return;
+  }
+
+  const html = ORG_FACETS.map((f) => {
+    const values = new Set();
+    for (const o of allOrganizations) (o[f.field] || []).forEach((v) => values.add(v));
+    const opts = orderedValues([...values], f.order);
+    if (opts.length === 0) return ""; // nothing to filter on → no menu
+    const sel = selectedFacets[f.key];
+    const optionsHTML = opts
+      .map(
+        (v) =>
+          `<label class="facet-option"><input type="checkbox" value="${v}" ${sel.has(v) ? "checked" : ""}><span>${v}</span></label>`
+      )
+      .join("");
+    return `
+      <div class="facet" data-facet="${f.key}">
+        <button type="button" class="facet-btn ${sel.size ? "active" : ""}" aria-expanded="false" aria-haspopup="true">
+          ${f.label}<span class="facet-count">${sel.size ? ` (${sel.size})` : ""}</span><span class="facet-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="facet-menu" hidden>${optionsHTML}</div>
+      </div>`;
+  }).join("");
+
+  facetMenusEl.innerHTML = html;
+  facetMenusEl.hidden = html.trim() === "";
+  wireFacetMenus();
+}
+
+function wireFacetMenus() {
+  facetMenusEl.querySelectorAll(".facet").forEach((facetEl) => {
+    const key = facetEl.dataset.facet;
+    const btn = facetEl.querySelector(".facet-btn");
+    const menu = facetEl.querySelector(".facet-menu");
+    const count = facetEl.querySelector(".facet-count");
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = menu.hidden;
+      closeAllFacetMenus();
+      menu.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", String(willOpen));
+      // Flip alignment if the menu would spill past the right edge.
+      if (willOpen) {
+        menu.classList.remove("align-right");
+        if (menu.getBoundingClientRect().right > document.documentElement.clientWidth - 8) {
+          menu.classList.add("align-right");
+        }
+      }
+    });
+    menu.addEventListener("click", (e) => e.stopPropagation());
+
+    menu.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener("change", () => {
+        const sel = selectedFacets[key];
+        if (cb.checked) sel.add(cb.value);
+        else sel.delete(cb.value);
+        btn.classList.toggle("active", sel.size > 0);
+        count.textContent = sel.size ? ` (${sel.size})` : "";
+        applyFilters();
+      });
     });
   });
 }
@@ -370,9 +503,11 @@ function wireDescriptionClamps() {
 function setActiveTab(tab) {
   if (tab === activeTab) return;
   activeTab = tab;
+  closeAllFacetMenus();
   renderTabs();
   renderToggles();
   renderCategoryChips();
+  renderFacetMenus();
   applyFilters();
 }
 
@@ -382,10 +517,12 @@ function clearAll() {
   ageLabel = "Any";
   const t = toggleState[activeTab];
   Object.keys(t).forEach((k) => (t[k] = false));
-  selectedCategories[activeTab].clear();
+  if (selectedCategories[activeTab]) selectedCategories[activeTab].clear();
+  ORG_FACETS.forEach((f) => selectedFacets[f.key].clear());
   renderAgeChips();
   renderToggles();
   renderCategoryChips();
+  renderFacetMenus();
   applyFilters();
 }
 
@@ -417,6 +554,7 @@ async function loadOrganizations() {
   }
   if (activeTab === "year") {
     renderCategoryChips();
+    renderFacetMenus();
     applyFilters();
   }
 }
@@ -429,11 +567,15 @@ searchInput.addEventListener("input", () => {
 });
 clearAllBtn.addEventListener("click", clearAll);
 emptyClearBtn.addEventListener("click", clearAll);
+// Close any open facet dropdown when clicking elsewhere (menu/button clicks
+// stopPropagation, so this only fires for outside clicks).
+document.addEventListener("click", closeAllFacetMenus);
 
 renderTabs();
 renderAgeChips();
 renderToggles();
 renderCategoryChips();
+renderFacetMenus();
 applyFilters();
 
 loadPrograms();
