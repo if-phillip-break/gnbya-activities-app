@@ -60,6 +60,9 @@ const toggleRowEl = document.getElementById("toggle-row");
 const clearAllBtn = document.getElementById("clear-all");
 const categoryChipsEl = document.getElementById("category-chips");
 const facetMenusEl = document.getElementById("facet-menus");
+const filtersToggleBtn = document.getElementById("filters-toggle");
+const filtersCountEl = document.getElementById("filters-count");
+const filterBarEl = document.querySelector(".filter-bar");
 const tabsEl = document.getElementById("tabs");
 const resultCountEl = document.getElementById("result-count");
 const cardGridEl = document.getElementById("card-grid");
@@ -123,6 +126,19 @@ function anyFilterActive() {
     );
   }
   return ORG_FACETS.some((f) => selectedFacets[f.key].size > 0);
+}
+
+// How many filters are currently applied, for the mobile "Filters (n)" badge.
+// Search isn't counted — its box stays visible, so it's never hidden from view.
+function activeFilterCount() {
+  let n = ageLabel !== "Any" ? 1 : 0;
+  if (activeTab === "summer") {
+    n += Object.values(toggleState.summer).filter(Boolean).length;
+    n += selectedCategories.summer.size;
+  } else {
+    n += ORG_FACETS.reduce((sum, f) => sum + selectedFacets[f.key].size, 0);
+  }
+  return n;
 }
 
 // Order facet values by a canonical list when given; unknown values sort last,
@@ -452,6 +468,9 @@ function wireFacetMenus() {
 
 function applyFilters() {
   clearAllBtn.hidden = !anyFilterActive();
+  const activeCount = activeFilterCount();
+  filtersCountEl.textContent = activeCount ? ` (${activeCount})` : "";
+  filtersToggleBtn.classList.toggle("has-active", activeCount > 0);
 
   if (loadError[activeTab]) {
     cardGridEl.innerHTML = `<p class="loading">${loadError[activeTab]}</p>`;
@@ -567,6 +586,15 @@ searchInput.addEventListener("input", () => {
 });
 clearAllBtn.addEventListener("click", clearAll);
 emptyClearBtn.addEventListener("click", clearAll);
+
+// Mobile: expand/collapse the filter panel. (On wider screens the button is
+// hidden by CSS and every control is always visible.)
+filtersToggleBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  closeAllFacetMenus();
+  const open = filterBarEl.classList.toggle("filters-open");
+  filtersToggleBtn.setAttribute("aria-expanded", String(open));
+});
 // Close any open facet dropdown when clicking elsewhere (menu/button clicks
 // stopPropagation, so this only fires for outside clicks).
 document.addEventListener("click", closeAllFacetMenus);

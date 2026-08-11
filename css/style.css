@@ -27,6 +27,11 @@
 
 * { box-sizing: border-box; }
 
+/* Our layout rules (.filter-row{display:flex} etc.) are author styles and would
+   otherwise beat the browser's [hidden]{display:none}, leaving "hidden" rows
+   rendering as empty strips. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--page);
@@ -179,6 +184,24 @@ input, button, select { font-family: inherit; }
   outline: none;
 }
 .search-input:focus { border-color: var(--green); }
+
+/* Mobile-only "Filters" disclosure button (revealed in the mobile media query) */
+.filters-toggle {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 16px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1.5px solid var(--border-2);
+}
+.filters-toggle.has-active { border-color: var(--green); color: var(--green); }
+.filters-count { font-weight: 700; }
 
 .age-group {
   display: flex;
@@ -611,9 +634,55 @@ input:focus-visible {
   .page-title { font-size: 30px; }
   .site-logo { height: 72px; }
   .header-left { gap: 16px; }
-  .age-group { width: 100%; }
-  .search-wrap { flex: 1 1 100%; }
   .results-toolbar { align-items: stretch; }
   .segmented { width: 100%; }
   .seg-tab { flex: 1; }
+}
+
+/* Below ~760px the filter bar would otherwise fill the screen before a single
+   card is visible (search + age chips + seven facet pills). Collapse everything
+   except the search box behind a "Filters" button; the sticky bar then costs
+   one row. */
+@media (max-width: 760px) {
+  .filters-toggle { display: inline-flex; }
+
+  .search-wrap { flex: 1 1 180px; min-width: 0; }
+  .filter-inner { padding-top: 12px; padding-bottom: 12px; gap: 12px; }
+
+  /* Collapsed: only the search row shows. */
+  .filter-bar:not(.filters-open) .age-group,
+  .filter-bar:not(.filters-open) .filter-row-toggles,
+  .filter-bar:not(.filters-open) .chip-row { display: none; }
+
+  /* Open: never let the panel exceed the viewport — scroll inside it instead. */
+  .filter-bar.filters-open .filter-inner {
+    max-height: 78vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .filter-bar.filters-open .filters-toggle { background: var(--green); color: #fff; border-color: var(--green); }
+
+  .age-group { width: 100%; flex-wrap: wrap; }
+  .age-chips { flex: 1 1 auto; }
+  .age-chip { flex: 1 1 auto; text-align: center; }
+
+  .filter-row-toggles { flex-direction: column; align-items: stretch; }
+  .toggle-row { width: 100%; }
+  .toggle-pill { width: 100%; text-align: center; }
+  .clear-all { margin-left: 0; align-self: flex-start; }
+
+  /* Facets become a full-width accordion: an absolutely-positioned dropdown
+     would be clipped by the panel's own scrolling, so open them inline. */
+  .facet-row { flex-direction: column; align-items: stretch; width: 100%; }
+  .facet { width: 100%; }
+  .facet-btn { width: 100%; justify-content: space-between; }
+  .facet-menu {
+    position: static;
+    width: 100%;
+    max-width: none;
+    max-height: 260px;
+    margin-top: 6px;
+    box-shadow: none;
+    border-color: var(--border);
+  }
 }
