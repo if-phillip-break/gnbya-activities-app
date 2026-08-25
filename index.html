@@ -51,13 +51,15 @@
         </div>
       </div>
 
+      <!-- Type of activity comes before the refinements: a parent picks what
+           they're looking for, then narrows it. -->
+      <div class="filter-row chip-row" id="category-chips" aria-label="Filter by type of activity" hidden></div>
+
       <div class="filter-row filter-row-toggles">
         <div class="toggle-row" id="toggle-row" role="group" aria-label="Quick filters"></div>
-        <div class="facet-row" id="facet-menus" role="group" aria-label="Filters" hidden></div>
+        <div class="facet-row" id="facet-menus" role="group" aria-label="More filters" hidden></div>
         <button type="button" id="clear-all" class="clear-all" hidden>Clear all</button>
       </div>
-
-      <div class="filter-row chip-row" id="category-chips" aria-label="Filter by category" hidden></div>
     </div>
   </div>
 
@@ -83,7 +85,11 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div class="footer-help">Need help choosing or applying? Contact the Alliance family line for support in multiple languages.</div>
-      <div class="footer-meta">Listings updated weekly by participating organizations.</div>
+      <div class="footer-actions">
+        <!-- Shown only once SUGGEST_FORM_URL is set in js/data.js. -->
+        <a class="suggest-link" id="suggest-link" target="_blank" rel="noopener" hidden>Know a program we're missing? Tell us →</a>
+        <div class="footer-meta">Listings updated weekly by participating organizations.</div>
+      </div>
     </div>
   </footer>
 

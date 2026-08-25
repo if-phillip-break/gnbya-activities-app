@@ -16,21 +16,29 @@ const AGES = [
   { label: "14+", min: 14, max: 18 },
 ];
 
-// Toggle pills differ per tab: orgs don't carry bus/language flags, so their
-// bar only offers affordability.
+// Toggle pills for the two program tabs. Organizations get quick buttons
+// instead (ORG_QUICK) because their filters are facet values, not flags.
 const PROGRAM_TOGGLES = [
   { key: "free", label: "Free or scholarship" },
   { key: "bus", label: "Bus accessible" },
   { key: "lang", label: "Language support" },
 ];
-// Organizations filter via the multi-select facet menus (ORG_FACETS) instead of
-// a quick-toggle row, so their toggle row is empty.
-const ORG_TOGGLES = [];
 
+// Three tabs over two datasets. "summer" and "current" are two views of the
+// same programs feed, split by the sheet's "Summer camp?" tick box; "year" is
+// the organizations directory. `noun` labels the result count.
 const TABS = [
-  { key: "summer", label: "Summer camps" },
-  { key: "year", label: "GNBYA Organizations" },
+  { key: "summer", label: "Summer Camps", dataset: "programs", noun: "camp", nounPlural: "camps" },
+  { key: "current", label: "Current Activities", dataset: "programs", noun: "activity", nounPlural: "activities" },
+  { key: "year", label: "GNBYA Organizations", dataset: "orgs", noun: "organization", nounPlural: "organizations" },
 ];
+
+function tabDef(key) {
+  return TABS.find((t) => t.key === key) || TABS[0];
+}
+function isProgramTab(key) {
+  return tabDef(key).dataset === "programs";
+}
 
 // Faceted (multi-select dropdown) filters for the Organizations tab. Each reads a
 // list-valued field on the org object; options are derived from the data, ordered
@@ -49,8 +57,27 @@ const ORG_FACETS = [
   { key: "registration", label: "Registration", field: "registration",
     order: ["Drop In", "Application Required", "Restricted Access"] },
   { key: "transportation", label: "Transportation", field: "transportation" },
-  { key: "categories", label: "Categories", field: "categories" },
 ];
+
+// Quick buttons for the Organizations tab. Seven dropdowns is a lot to read
+// through, and parent feedback was that filters people wanted were already
+// there but unnoticed — so the highest-traffic values get a one-click pill and
+// the long tail stays in the menus. Each button is a shortcut into a facet, so
+// clicking one ticks the matching boxes in the dropdown and the two stay in
+// sync rather than becoming a second, competing filter.
+const ORG_QUICK = [
+  { label: "Free", facet: "cost", values: ["Free"] },
+  { label: "Financial aid", facet: "cost",
+    values: ["Financial Assistance", "Slide Scale Based on Income", "Accepts Child Care Subsidies"] },
+  { label: "After school", facet: "programModel", values: ["After School"] },
+  { label: "No application needed", facet: "registration", values: ["Drop In"] },
+  { label: "On a bus route", facet: "transportation", values: ["Accessible From Public Transportation"] },
+];
+
+function quickIsActive(q) {
+  const sel = selectedFacets[q.facet];
+  return q.values.every((v) => sel.has(v));
+}
 
 // ---------- element lookups ----------
 
@@ -68,13 +95,16 @@ const resultCountEl = document.getElementById("result-count");
 const cardGridEl = document.getElementById("card-grid");
 const emptyStateEl = document.getElementById("empty-state");
 const emptyClearBtn = document.getElementById("empty-clear");
+const emptyTitleEl = emptyStateEl.querySelector(".empty-title");
+const emptyHelpEl = emptyStateEl.querySelector(".empty-help");
 
 // ---------- state ----------
 
 let allPrograms = [];
 let allOrganizations = [];
-const dataReady = { summer: false, year: false };
-const loadError = { summer: null, year: null };
+// Keyed by dataset, not by tab: the two program tabs share one fetch.
+const dataReady = { programs: false, orgs: false };
+const loadError = { programs: null, orgs: null };
 
 let activeTab = "summer";
 let query = "";
@@ -82,10 +112,16 @@ let ageLabel = "Any";
 // Toggle + category selections are kept per tab so switching tabs is lossless.
 const toggleState = {
   summer: { free: false, bus: false, lang: false },
+  current: { free: false, bus: false, lang: false },
   year: {},
 };
-// Summer categories are chips; org categories are one of the facet menus.
-const selectedCategories = { summer: new Set() };
+// Categories are chips on every tab now — parents were missing them when they
+// were buried in a dropdown on the Organizations tab.
+const selectedCategories = {
+  summer: new Set(),
+  current: new Set(),
+  year: new Set(),
+};
 // Per-facet selections for the Organizations tab (one Set per ORG_FACETS entry).
 const selectedFacets = {};
 ORG_FACETS.forEach((f) => (selectedFacets[f.key] = new Set()));
@@ -119,11 +155,9 @@ function currentRange() {
 }
 function anyFilterActive() {
   if (query.trim() !== "" || ageLabel !== "Any") return true;
-  if (activeTab === "summer") {
-    return (
-      Object.values(toggleState.summer).some(Boolean) ||
-      selectedCategories.summer.size > 0
-    );
+  if (selectedCategories[activeTab].size > 0) return true;
+  if (isProgramTab(activeTab)) {
+    return Object.values(toggleState[activeTab]).some(Boolean);
   }
   return ORG_FACETS.some((f) => selectedFacets[f.key].size > 0);
 }
@@ -132,10 +166,12 @@ function anyFilterActive() {
 // Search isn't counted — its box stays visible, so it's never hidden from view.
 function activeFilterCount() {
   let n = ageLabel !== "Any" ? 1 : 0;
-  if (activeTab === "summer") {
-    n += Object.values(toggleState.summer).filter(Boolean).length;
-    n += selectedCategories.summer.size;
+  n += selectedCategories[activeTab].size;
+  if (isProgramTab(activeTab)) {
+    n += Object.values(toggleState[activeTab]).filter(Boolean).length;
   } else {
+    // Quick buttons are shortcuts into the facets, so counting the facet
+    // selections already covers them — don't double-count.
     n += ORG_FACETS.reduce((sum, f) => sum + selectedFacets[f.key].size, 0);
   }
   return n;
@@ -158,15 +194,27 @@ function orderedValues(values, order) {
 
 // ---------- filtering ----------
 
+// Everything a search query is matched against. Both the parent-facing labels
+// and the raw sheet values are included, so searching "mental health" still
+// finds listings now displayed under the merged "Health & Wellness" label.
+function searchHaystack(parts, item) {
+  return `${parts.join(" ")} ${item.categories.join(" ")} ${(item.rawCategories || []).join(" ")}`.toLowerCase();
+}
+
 function filteredList() {
   const range = currentRange();
   const q = query.trim().toLowerCase();
+  const cats = selectedCategories[activeTab];
 
-  if (activeTab === "summer") {
-    const t = toggleState.summer;
-    const cats = selectedCategories.summer;
+  if (isProgramTab(activeTab)) {
+    const t = toggleState[activeTab];
+    // The two program tabs are one dataset split by the sheet's tick box.
+    const wantSummerCamp = activeTab === "summer";
     return allPrograms.filter((p) => {
-      const hay = `${p.programName} ${p.organizationName} ${p.description || ""} ${p.categories.join(" ")}`.toLowerCase();
+      if (p.isSummerCamp !== wantSummerCamp) return false;
+      const hay = searchHaystack(
+        [p.programName, p.organizationName, p.description || ""], p
+      );
       if (q && !hay.includes(q)) return false;
       if (!ageOverlaps(p.ageRange.min, p.ageRange.max, range)) return false;
       if (t.free && !programIsFree(p)) return false;
@@ -178,9 +226,10 @@ function filteredList() {
   }
 
   return allOrganizations.filter((o) => {
-    const hay = `${o.name} ${o.description || ""} ${o.categories.join(" ")}`.toLowerCase();
+    const hay = searchHaystack([o.name, o.description || ""], o);
     if (q && !hay.includes(q)) return false;
     if (!ageOverlaps(o.minAge, o.maxAge, range)) return false;
+    if (cats.size > 0 && !o.categories.some((c) => cats.has(c))) return false;
     // Facet menus: OR within a facet, AND across facets.
     for (const f of ORG_FACETS) {
       const sel = selectedFacets[f.key];
@@ -328,35 +377,82 @@ function renderAgeChips() {
   });
 }
 
+// Every distinct value present in the loaded org data for one facet field.
+function orgFacetValues(field) {
+  const values = new Set();
+  for (const o of allOrganizations) (o[field] || []).forEach((v) => values.add(v));
+  return values;
+}
+
 function renderToggles() {
-  const defs = activeTab === "summer" ? PROGRAM_TOGGLES : ORG_TOGGLES;
-  const t = toggleState[activeTab];
-  toggleRowEl.innerHTML = defs
-    .map(
+  if (isProgramTab(activeTab)) {
+    const t = toggleState[activeTab];
+    toggleRowEl.innerHTML = PROGRAM_TOGGLES.map(
       (f) =>
         `<button type="button" class="toggle-pill ${t[f.key] ? "active" : ""}" data-key="${f.key}">${f.label}</button>`
+    ).join("");
+    toggleRowEl.querySelectorAll(".toggle-pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.key;
+        t[key] = !t[key];
+        btn.classList.toggle("active", t[key]);
+        applyFilters();
+      });
+    });
+    return;
+  }
+
+  // Organizations: quick buttons that drive facet selections. A button whose
+  // values don't appear anywhere in the data is dropped rather than shown as a
+  // pill that always returns nothing.
+  const present = {};
+  ORG_FACETS.forEach((f) => (present[f.key] = orgFacetValues(f.field)));
+  const usable = ORG_QUICK.filter((q) =>
+    q.values.some((v) => present[q.facet] && present[q.facet].has(v))
+  );
+
+  toggleRowEl.innerHTML = usable
+    .map(
+      (q) =>
+        `<button type="button" class="toggle-pill ${quickIsActive(q) ? "active" : ""}" data-quick="${ORG_QUICK.indexOf(q)}">${q.label}</button>`
     )
     .join("");
-  toggleRowEl.querySelectorAll(".toggle-pill").forEach((btn) => {
+  toggleRowEl.querySelectorAll("[data-quick]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const key = btn.dataset.key;
-      t[key] = !t[key];
-      btn.classList.toggle("active", t[key]);
+      const q = ORG_QUICK[Number(btn.dataset.quick)];
+      const sel = selectedFacets[q.facet];
+      const turningOff = quickIsActive(q);
+      q.values.forEach((v) => (turningOff ? sel.delete(v) : sel.add(v)));
+      renderFacetMenus(); // keep the dropdown's tick boxes in step
+      refreshQuickStates();
       applyFilters();
     });
   });
 }
 
-function renderCategoryChips() {
-  // Categories are chips on the Summer tab; on the Organizations tab they're one
-  // of the facet menus instead, so hide the chip row there.
-  if (activeTab !== "summer") {
-    categoryChipsEl.hidden = true;
-    categoryChipsEl.innerHTML = "";
-    return;
+// Cheap re-sync of the quick pills after a dropdown tick box changed, without
+// re-rendering (and so closing) the open menu.
+function refreshQuickStates() {
+  toggleRowEl.querySelectorAll("[data-quick]").forEach((btn) => {
+    btn.classList.toggle("active", quickIsActive(ORG_QUICK[Number(btn.dataset.quick)]));
+  });
+}
+
+// The listings the active tab draws from, before any filtering. Used to build
+// the category chips so a tab only offers categories it can actually show.
+function tabSource() {
+  if (isProgramTab(activeTab)) {
+    return allPrograms.filter((p) => p.isSummerCamp === (activeTab === "summer"));
   }
+  return allOrganizations;
+}
+
+function renderCategoryChips() {
+  // Categories are chips on every tab. They used to be a dropdown on the
+  // Organizations tab, where parents reported not noticing filters that were
+  // in fact already there.
   const cats = new Set();
-  for (const item of allPrograms) (item.categories || []).forEach((c) => cats.add(c));
+  for (const item of tabSource()) (item.categories || []).forEach((c) => cats.add(c));
 
   if (cats.size === 0) {
     categoryChipsEl.hidden = true;
@@ -364,11 +460,16 @@ function renderCategoryChips() {
     return;
   }
   categoryChipsEl.hidden = false;
-  const selected = selectedCategories.summer;
+  const selected = selectedCategories[activeTab];
+  // Canonical order (see CATEGORY_DISPLAY in data.js); anything unrecognised
+  // sorts alphabetically after it.
+  const ordered = [
+    ...CATEGORY_ORDER.filter((c) => cats.has(c)),
+    ...[...cats].filter((c) => !CATEGORY_ORDER.includes(c)).sort(),
+  ];
   categoryChipsEl.innerHTML =
-    `<span class="chip-label">Categories</span>` +
-    [...cats]
-      .sort()
+    `<span class="chip-label">Type of activity</span>` +
+    ordered
       .map(
         (c) =>
           `<button type="button" class="cat-chip ${selected.has(c) ? "active" : ""}" data-category="${c}">${c}</button>`
@@ -423,7 +524,9 @@ function renderFacetMenus() {
       </div>`;
   }).join("");
 
-  facetMenusEl.innerHTML = html;
+  facetMenusEl.innerHTML = html
+    ? `<span class="chip-label">More filters</span>${html}`
+    : "";
   facetMenusEl.hidden = html.trim() === "";
   wireFacetMenus();
 }
@@ -458,6 +561,7 @@ function wireFacetMenus() {
         else sel.delete(cb.value);
         btn.classList.toggle("active", sel.size > 0);
         count.textContent = sel.size ? ` (${sel.size})` : "";
+        refreshQuickStates();
         applyFilters();
       });
     });
@@ -472,13 +576,16 @@ function applyFilters() {
   filtersCountEl.textContent = activeCount ? ` (${activeCount})` : "";
   filtersToggleBtn.classList.toggle("has-active", activeCount > 0);
 
-  if (loadError[activeTab]) {
-    cardGridEl.innerHTML = `<p class="loading">${loadError[activeTab]}</p>`;
+  const def = tabDef(activeTab);
+  const ds = def.dataset;
+
+  if (loadError[ds]) {
+    cardGridEl.innerHTML = `<p class="loading">${loadError[ds]}</p>`;
     emptyStateEl.hidden = true;
     resultCountEl.textContent = "";
     return;
   }
-  if (!dataReady[activeTab]) {
+  if (!dataReady[ds]) {
     cardGridEl.innerHTML = `<p class="loading">Loading…</p>`;
     emptyStateEl.hidden = true;
     resultCountEl.textContent = "";
@@ -486,18 +593,34 @@ function applyFilters() {
   }
 
   const list = filteredList();
-  const noun = activeTab === "summer" ? "program" : "organization";
-  resultCountEl.textContent = `${list.length} ${noun}${list.length === 1 ? "" : "s"}`;
+  resultCountEl.textContent = `${list.length} ${list.length === 1 ? def.noun : def.nounPlural}`;
 
   if (list.length === 0) {
     cardGridEl.innerHTML = "";
-    emptyStateEl.hidden = false;
+    showEmptyState(def);
     return;
   }
   emptyStateEl.hidden = true;
-  const cardFn = activeTab === "summer" ? programCardHTML : organizationCardHTML;
+  const cardFn = isProgramTab(activeTab) ? programCardHTML : organizationCardHTML;
   cardGridEl.innerHTML = list.map(cardFn).join("");
   wireDescriptionClamps();
+}
+
+// Two different kinds of "nothing here": the tab has no listings at all (so
+// there's nothing to clear — offering a Clear button would just be confusing),
+// or the filters excluded everything.
+function showEmptyState(def) {
+  emptyStateEl.hidden = false;
+  if (tabSource().length === 0) {
+    emptyTitleEl.textContent = `No ${def.nounPlural} listed yet`;
+    emptyHelpEl.textContent =
+      "Nothing has been published in this section so far. The GNBYA Organizations tab lists programs that run year-round.";
+    emptyClearBtn.hidden = true;
+    return;
+  }
+  emptyTitleEl.textContent = "No matches for those filters";
+  emptyHelpEl.textContent = "Try widening the age range or clearing a filter.";
+  emptyClearBtn.hidden = false;
 }
 
 // After cards are in the DOM, reveal a "See more" toggle only on descriptions
@@ -536,7 +659,7 @@ function clearAll() {
   ageLabel = "Any";
   const t = toggleState[activeTab];
   Object.keys(t).forEach((k) => (t[k] = false));
-  if (selectedCategories[activeTab]) selectedCategories[activeTab].clear();
+  selectedCategories[activeTab].clear();
   ORG_FACETS.forEach((f) => selectedFacets[f.key].clear());
   renderAgeChips();
   renderToggles();
@@ -551,12 +674,13 @@ async function loadPrograms() {
   try {
     const records = await fetchRecords(PROGRAMS_CSV_URL);
     allPrograms = records.map(mapRecordToProgram);
-    dataReady.summer = true;
+    dataReady.programs = true;
   } catch (error) {
     console.error("Failed to load programs:", error);
-    loadError.summer = "Sorry, we couldn't load programs right now. Please try again later.";
+    loadError.programs = "Sorry, we couldn't load programs right now. Please try again later.";
   }
-  if (activeTab === "summer") {
+  // Both program tabs are served by this one fetch.
+  if (isProgramTab(activeTab)) {
     renderCategoryChips();
     applyFilters();
   }
@@ -566,12 +690,13 @@ async function loadOrganizations() {
   try {
     const records = await fetchRecords(ORGS_CSV_URL);
     allOrganizations = records.map(mapRecordToOrganization);
-    dataReady.year = true;
+    dataReady.orgs = true;
   } catch (error) {
     console.error("Failed to load organizations:", error);
-    loadError.year = "Sorry, we couldn't load organizations right now. Please try again later.";
+    loadError.orgs = "Sorry, we couldn't load organizations right now. Please try again later.";
   }
   if (activeTab === "year") {
+    renderToggles();
     renderCategoryChips();
     renderFacetMenus();
     applyFilters();
@@ -598,6 +723,13 @@ filtersToggleBtn.addEventListener("click", (e) => {
 // Close any open facet dropdown when clicking elsewhere (menu/button clicks
 // stopPropagation, so this only fires for outside clicks).
 document.addEventListener("click", closeAllFacetMenus);
+
+// The suggest-a-program link only appears once a form URL is configured.
+const suggestLinkEl = document.getElementById("suggest-link");
+if (SUGGEST_FORM_URL) {
+  suggestLinkEl.href = SUGGEST_FORM_URL;
+  suggestLinkEl.hidden = false;
+}
 
 renderTabs();
 renderAgeChips();

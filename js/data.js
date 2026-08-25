@@ -10,6 +10,11 @@
 const PROGRAMS_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOv1GOvvxbbs45Zhnr7fLXKojgM6IvwChxO7omeJbnfWw1ziupuekM_x6jaSiTXgWJa35LbXUL17ww/pub?gid=1329653144&single=true&output=csv";
 
+// Parent-facing "suggest a program" form. Parents kept naming programs that
+// aren't listed, so give them somewhere to put that. Set this to a Google Form
+// URL to reveal the link in the footer; left null, the link stays hidden.
+const SUGGEST_FORM_URL = null;
+
 // Organizations placeholder sheet:
 // https://docs.google.com/spreadsheets/d/17GgTCCFufEu5ubDUKBWE-vdZjBNQA4TUHHdCsKF5cUg
 // Until its link-sharing is enabled, we read the same data from a local copy.
@@ -25,8 +30,11 @@ async function fetchRecords(url) {
 
 // ---------- shared field helpers ----------
 
+// Yes/No columns arrive as "Yes" when typed by hand and as "TRUE" when the
+// column is a Google Sheets tick box. Accept either so staff can use whichever
+// is convenient without silently breaking a filter.
 function toBool(value) {
-  return (value || "").trim().toLowerCase() === "yes";
+  return /^(yes|true|y|x)$/i.test((value || "").trim());
 }
 
 function toNullableString(value) {
@@ -50,6 +58,54 @@ function toCategoryList(value) {
   return value.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
 }
 
+// ---------- category display layer ----------
+//
+// GNBYA's own taxonomy (from the resource guide) is what staff type into the
+// sheet and pick in the form. It's accurate but it isn't plain language — a
+// parent looking for a dance class doesn't scan for "Visual Arts/Performing
+// Arts/Culture", and "Health Safety & Wellness" vs "Mental Health Services" is
+// a distinction that matters to funders, not to families.
+//
+// So the raw value stays in the sheet and we translate it here, for display
+// only. Nothing upstream changes. Two raw values may map to the SAME label
+// (both health categories merge into one), which is why the app filters on
+// these labels rather than on the raw values.
+//
+// Matching is a regex against the raw text, so near-misses still land correctly
+// — e.g. a cell truncated to "Visual Arts/Performing Arts/" still reads as Arts
+// & Culture. Order matters: the first pattern that matches wins.
+const CATEGORY_DISPLAY = [
+  { label: "📚 Homework & Tutoring", match: /academic|tutor|homework|literacy/i },
+  { label: "🎨 Arts & Culture", match: /visual arts|performing arts|culture|music|dance|theat/i },
+  { label: "⚽ Sports & Recreation", match: /sports|recreation|athletic/i },
+  { label: "🔬 Science & Nature", match: /science|nature|stem|technolog/i },
+  { label: "💚 Health & Wellness", match: /health|wellness|mental|safety/i },
+  { label: "🤝 Mentoring & Leadership", match: /mentor|leader/i },
+  { label: "💼 Jobs & Career Skills", match: /vocational|career|job|workforce/i },
+  { label: "👶 Infant & Toddler Care", match: /infant|toddler/i },
+  { label: "🧸 Preschool Care", match: /preschool|pre-k/i },
+  { label: "🎒 School-Age Care", match: /school.?age/i },
+];
+
+const CATEGORY_ORDER = CATEGORY_DISPLAY.map((c) => c.label);
+
+// An unrecognised value passes through untouched rather than being dropped —
+// a new category invented upstream still shows up, just without an emoji.
+function toDisplayCategory(raw) {
+  const hit = CATEGORY_DISPLAY.find((c) => c.match.test(raw));
+  return hit ? hit.label : raw;
+}
+
+// Translate raw category values into parent-facing labels: deduped (because
+// values merge) and in CATEGORY_DISPLAY order, with anything unrecognised
+// sorted alphabetically at the end.
+function toDisplayCategories(rawList) {
+  const labels = new Set(rawList.map(toDisplayCategory));
+  const known = CATEGORY_ORDER.filter((l) => labels.has(l));
+  const unknown = [...labels].filter((l) => !CATEGORY_ORDER.includes(l)).sort();
+  return [...known, ...unknown];
+}
+
 function slugify(text) {
   return text
     .toLowerCase()
@@ -59,15 +115,30 @@ function slugify(text) {
 
 // ---------- summer camps & programs ----------
 
+// Which of the two program tabs a listing belongs to. "Summer camp?" is a
+// tick-box column staff fill in on the intake sheet: ticked -> Summer Camps,
+// unticked -> Current Activities. Until that column exists everything falls
+// back to summer, which is where all current listings belong.
+function toSummerCampFlag(record) {
+  const explicit = record["Summer camp?"];
+  if (explicit !== undefined && explicit.trim() !== "") return toBool(explicit);
+  const season = (record["Season"] || "summer").trim().toLowerCase();
+  return season === "" || season === "summer";
+}
+
 function mapRecordToProgram(record) {
+  const rawCategories = toCategoryList(record["Categorization"]);
   return {
     id: slugify(`${record["Organization Name"]}-${record["Program Name"]}`),
     organizationName: record["Organization Name"],
     gnbyaMember: toBool(record["GNBYA member?"]),
     programName: record["Program Name"],
+    isSummerCamp: toSummerCampFlag(record),
     // Categorization drives the filter chips and card tags; accepts comma- or
-    // semicolon-separated values (see toCategoryList).
-    categories: toCategoryList(record["Categorization"]),
+    // semicolon-separated values (see toCategoryList). The raw values are kept
+    // so search still matches what staff actually typed.
+    categories: toDisplayCategories(rawCategories),
+    rawCategories,
     website: toNullableString(record["Website"]),
     ageRange: {
       min: toNumberOrNull(record["Age Minimum"]),
@@ -102,9 +173,12 @@ function mapRecordToOrganization(record) {
     minAge: toNumberOrNull(record["Min age"]),
     maxAge: toNumberOrNull(record["Max age"]),
     gradeLevels: toList(record["Grade levels served"]),
-    // One combined list drives the category chips; early-education entries
-    // keep their identity for display but filter as ordinary categories.
-    categories: [...youth, ...earlyEd],
+    // One combined list drives the category filter; early-education entries
+    // keep their identity for display but filter as ordinary categories. Both
+    // lists go through the same parent-facing translation as programs, so a
+    // chip means the same thing on every tab.
+    categories: toDisplayCategories([...youth, ...earlyEd]),
+    rawCategories: [...youth, ...earlyEd],
     programYear: toList(record["Program year"]),
     programModel: toList(record["Program model"]),
     cost: toList(record["Cost"]),

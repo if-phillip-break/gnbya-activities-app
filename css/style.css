@@ -329,7 +329,8 @@ input, button, select { font-family: inherit; }
   border-top: 1px solid var(--border);
   padding-top: 12px;
 }
-.chip-row .chip-label {
+/* Shared group label for the chip row and the facet ("More filters") row */
+.chip-label {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -340,9 +341,9 @@ input, button, select { font-family: inherit; }
 
 .cat-chip {
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 7px 13px;
   cursor: pointer;
   background: var(--surface);
   color: var(--text-2);
@@ -615,6 +616,32 @@ input, button, select { font-family: inherit; }
 .footer-help { font-size: 14.5px; color: var(--text-2); max-width: 560px; line-height: 1.5; }
 .footer-meta { font-size: 13px; color: var(--faint); }
 
+.footer-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.footer-actions .footer-meta { text-align: right; }
+
+.suggest-link {
+  background: var(--surface);
+  border: 1.5px solid var(--green);
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.suggest-link:hover { background: var(--green); color: #fff; text-decoration: none; }
+
+@media (max-width: 600px) {
+  .footer-actions { align-items: flex-start; }
+  .footer-actions .footer-meta { text-align: left; }
+  .suggest-link { white-space: normal; }
+}
+
 /* ---------------- Focus ring ---------------- */
 a:focus-visible,
 button:focus-visible,
@@ -649,8 +676,9 @@ input:focus-visible {
   .search-wrap { flex: 1 1 180px; min-width: 0; }
   .filter-inner { padding-top: 12px; padding-bottom: 12px; gap: 12px; }
 
-  /* Collapsed: only the search row shows. */
-  .filter-bar:not(.filters-open) .age-group,
+  /* Collapsed: search and age stay visible. Age is the filter parents need
+     most, and feedback was that people were missing filters that already
+     existed — so it costs a second row rather than hiding behind the button. */
   .filter-bar:not(.filters-open) .filter-row-toggles,
   .filter-bar:not(.filters-open) .chip-row { display: none; }
 
