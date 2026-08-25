@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&amp;family=Open+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#F4F7F5; font-family:"Open Sans",system-ui,sans-serif; color:#1C2B21; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:#1B6FA8; text-decoration:none; }
+  a:hover { color:#14547E; text-decoration:underline; }
+  input, button, select { font-family:inherit; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#F4F7F5">
+
+  <header style="background:#FFFFFF;border-bottom:1px solid #DCE5DE">
+    <div style="max-width:1180px;margin:0 auto;padding:22px 32px 0;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);gap:40px;align-items:center">
+
+      <div style="display:flex;gap:22px;align-items:center;padding-bottom:16px">
+        <img src="uploads/f35efd_676bc08b77a94d1b91bd3a44ac6e4272~mv2.avif" alt="Greater New Bedford Youth Alliance" style="height:96px;width:auto;display:block;flex:none;border-radius:8px" />
+        <div>
+          <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;color:#157F3D;margin-bottom:8px">Greater New Bedford Youth Alliance</div>
+          <h1 style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:42px;line-height:1.06;margin:0 0 12px;letter-spacing:-0.02em;color:#12351F;text-wrap:balance">Find a camp or program for your child</h1>
+        </div>
+      </div>
+
+      <div style="background:#F1F7F3;border:1px solid #DCE5DE;border-radius:16px;padding:18px 20px;margin-bottom:16px">
+        <div style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#4F5F55;margin-bottom:12px">Getting started</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:14.5px;line-height:1.4;color:#2B3B31">
+          <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Montserrat',sans-serif;font-weight:800;color:#157F3D">1</span><span>Enter your child's age to hide programs they can't join.</span></div>
+          <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Montserrat',sans-serif;font-weight:800;color:#157F3D">2</span><span>Use the filters for free spots, bus routes, or language support.</span></div>
+          <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Montserrat',sans-serif;font-weight:800;color:#157F3D">3</span><span>Stuck? Call the family line at <strong style="color:#157F3D">(508) 555-0142</strong>.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <div style="position:sticky;top:0;z-index:20;background:rgba(250,247,242,0.94);backdrop-filter:blur(8px);border-bottom:1px solid #DCE5DE">
+    <div style="max-width:1180px;margin:0 auto;padding:18px 32px 16px;display:flex;flex-direction:column;gap:14px">
+
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+        <div style="position:relative;flex:1 1 300px;min-width:260px">
+          <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;color:#6C7C72">⌕</span>
+          <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search camps, clubs, or organizations" style="width:100%;padding:14px 16px 14px 42px;border:1.5px solid #CFDCD3;border-radius:12px;background:#fff;font-size:16px;color:#1C2B21;outline:none">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #CFDCD3;border-radius:12px;padding:6px 6px 6px 14px">
+          <span style="font-size:13px;font-weight:600;color:#4F5F55;white-space:nowrap">Child's age</span>
+          <div style="display:flex;gap:4px">
+            <sc-for list="{{ ageChips }}" as="chip" hint-placeholder-count="5">
+              <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <sc-for list="{{ filterChips }}" as="chip" hint-placeholder-count="4">
+          <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+        </sc-for>
+        <sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearAll }}" style="margin-left:4px;background:none;border:none;color:#1B6FA8;font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;padding:8px 4px">Clear all</button>
+        </sc-if>
+      </div>
+
+    </div>
+  </div>
+
+  <main style="max-width:1180px;margin:0 auto;padding:26px 32px 72px">
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="display:flex;gap:6px;background:#E7EEE9;padding:5px;border-radius:12px">
+        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="2">
+          <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+        </sc-for>
+      </div>
+      <div style="font-size:15px;color:#4F5F55;font-weight:500">{{ resultLabel }}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(345px,1fr));gap:18px">
+      <sc-for list="{{ results }}" as="p" hint-placeholder-count="6">
+        <article style="background:#fff;border:1px solid #DCE5DE;border-radius:18px;padding:22px 22px 18px;display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 2px rgba(22,48,43,0.04)" style-hover="box-shadow:0 8px 24px rgba(22,48,43,0.10);border-color:#D2C8B8">
+
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div style="min-width:0">
+              <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#6C7C72;margin-bottom:5px">{{ p.org }}</div>
+              <h2 style="font-family:'Montserrat',sans-serif;font-size:23px;line-height:1.15;font-weight:700;margin:0;letter-spacing:-0.01em;text-wrap:pretty">{{ p.name }}</h2>
+            </div>
+            <span style="{{ p.statusStyle }}">{{ p.statusText }}</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#E4EBE6;border:1px solid #E4EBE6;border-radius:12px;overflow:hidden">
+            <div style="background:#F8FBF9;padding:11px 13px">
+              <div style="font-size:11px;letter-spacing:0.09em;text-transform:uppercase;font-weight:700;color:#6C7C72">Ages</div>
+              <div style="font-family:'Montserrat',sans-serif;font-size:19px;font-weight:700;margin-top:2px">{{ p.ages }}</div>
+            </div>
+            <div style="background:#F8FBF9;padding:11px 13px">
+              <div style="font-size:11px;letter-spacing:0.09em;text-transform:uppercase;font-weight:700;color:#6C7C72">Cost</div>
+              <div style="{{ p.costStyle }}">{{ p.cost }}</div>
+            </div>
+            <div style="background:#F8FBF9;padding:11px 13px">
+              <div style="font-size:11px;letter-spacing:0.09em;text-transform:uppercase;font-weight:700;color:#6C7C72">Dates</div>
+              <div style="font-size:14px;font-weight:600;margin-top:3px;line-height:1.3">{{ p.dates }}</div>
+            </div>
+            <div style="background:#F8FBF9;padding:11px 13px">
+              <div style="font-size:11px;letter-spacing:0.09em;text-transform:uppercase;font-weight:700;color:#6C7C72">Hours</div>
+              <div style="font-size:14px;font-weight:600;margin-top:3px;line-height:1.3">{{ p.hours }}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <sc-for list="{{ p.badges }}" as="b" hint-placeholder-count="2">
+              <span style="{{ b.style }}">{{ b.label }}</span>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ showDesc }}" hint-placeholder-val="{{ true }}">
+            <p style="margin:0;font-size:14.5px;line-height:1.55;color:#3F4F45;text-wrap:pretty">{{ p.desc }}</p>
+          </sc-if>
+
+          <div style="display:flex;align-items:flex-start;gap:8px;font-size:13.5px;color:#4F5F55;line-height:1.4">
+            <span style="color:#1B6FA8">◆</span>
+            <span>{{ p.address }}</span>
+          </div>
+
+          <div style="margin-top:auto;padding-top:14px;border-top:1px solid #E7EEE9;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div style="font-size:13px;color:#6C7C72;line-height:1.35;min-width:0">{{ p.contact }}</div>
+            <a href="#" style="flex:none;background:#157F3D;color:#FFFFFF;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;white-space:nowrap" style-hover="background:#0E6430;color:#fff;text-decoration:none">Sign up →</a>
+          </div>
+
+        </article>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:64px 20px;border:1.5px dashed #CFDCD3;border-radius:18px;background:#fff">
+        <div style="font-family:'Montserrat',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px">No programs match those filters</div>
+        <p style="margin:0 0 18px;color:#4F5F55;font-size:15px">Try widening the age range or clearing a filter.</p>
+        <button onClick="{{ clearAll }}" style="background:#157F3D;color:#FFFFFF;border:none;font-size:15px;font-weight:600;padding:12px 22px;border-radius:10px;cursor:pointer">Clear all filters</button>
+      </div>
+    </sc-if>
+
+  </main>
+
+  <footer style="border-top:1px solid #DCE5DE;background:#EAF1EC">
+    <div style="max-width:1180px;margin:0 auto;padding:28px 32px;display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:center">
+      <div style="font-size:14.5px;color:#3F4F45;max-width:560px;line-height:1.5">Need help choosing or applying? Call the Alliance family line at <strong>(508) 555-0142</strong> — Portuguese, Spanish, and K'iche' spoken.</div>
+      <div style="font-size:13px;color:#6C7C72">Listings updated weekly by participating organizations.</div>
+    </div>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showDescriptions&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cards&quot;},&quot;sortBy&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Availability first&quot;,&quot;Price (low to high)&quot;,&quot;Name (A–Z)&quot;],&quot;default&quot;:&quot;Availability first&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Cards&quot;}}">
+const PROGRAMS = [
+  { id:1, tab:"summer", name:"Summer Fun Program", org:"Boys & Girls Club of New Bedford", ages:"7–13", ageMin:7, ageMax:13, cost:"$50/week", price:50, free:false, dates:"Jul 1 – Aug 28", hours:"9am – 4pm", spots:"open", spotsText:"Joining by the week",
+    address:"166 Jenney Street, New Bedford", bus:true, lang:true, scholarship:true,
+    desc:"A full-summer day program of games, sports, arts, and field trips. Kids can join week by week.", contact:"Robert Mendes · rmendes@bgcnewbedford.org" },
+  { id:2, tab:"summer", name:"ZooCrew", org:"Buttonwood Park Zoo", ages:"10–12", ageMin:10, ageMax:12, cost:"$350/week", price:350, free:false, dates:"Weekly sessions", hours:"9am – 4pm", spots:"full", spotsText:"",
+    address:"425 Hawthorn Street, New Bedford", bus:false, lang:false, scholarship:true,
+    desc:"A week-long zoo day camp where kids go behind the scenes to learn about animal care and conservation.", contact:"Carolyn Doremus · cdoremus@bpzoo.org" },
+  { id:3, tab:"summer", name:"Bay Explorers", org:"Onset Bay Center", ages:"8–13", ageMin:8, ageMax:13, cost:"$395/week", price:395, free:false, dates:"Jun 22 – Aug 21", hours:"8:30am – 4pm", spots:"full", spotsText:"",
+    address:"114 Front Street, New Bedford", bus:false, lang:false, scholarship:true,
+    desc:"A hands-on outdoor day camp on the water, exploring marine life and the Buzzards Bay watershed.", contact:"Angie Weldon · weldon@savebuzzardsbay.org" },
+  { id:4, tab:"summer", name:"Sailing Camp", org:"Onset Bay Center", ages:"8–15", ageMin:8, ageMax:15, cost:"$395/week", price:395, free:false, dates:"Jul 6 – Jul 10", hours:"9am – 3:30pm", spots:"few", spotsText:"2 spots left",
+    address:"186 Onset Avenue, Onset", bus:false, lang:false, scholarship:true,
+    desc:"Learn-to-sail week on small boats in the harbor, ending with a family regatta on Friday.", contact:"Angie Weldon · weldon@savebuzzardsbay.org" },
+  { id:5, tab:"summer", name:"Summer Nature Camp", org:"Elements Learning Collaborative", ages:"5–9", ageMin:5, ageMax:9, cost:"$215–$270/wk", price:215, free:false, dates:"Jul 6 – Aug 14", hours:"8:30am – 3pm", spots:"open", spotsText:"Spots open",
+    address:"78 Rockdale Avenue, New Bedford", bus:false, lang:true, scholarship:true,
+    desc:"Forest days, garden projects, and animal tracking for younger kids. Sliding-scale tuition tiers.", contact:"Dana Silva · dana@elementslc.org" },
+  { id:6, tab:"summer", name:"Summer Adventure Camp", org:"Elements Learning Collaborative", ages:"9–13", ageMin:9, ageMax:13, cost:"$215–$270/wk", price:215, free:false, dates:"Jul 6 – Aug 14", hours:"8:30am – 3pm", spots:"open", spotsText:"Spots open",
+    address:"78 Rockdale Avenue, New Bedford", bus:false, lang:true, scholarship:true,
+    desc:"Hiking, paddling, and overnight prep trips for older kids who want to be outside all summer.", contact:"Dana Silva · dana@elementslc.org" },
+  { id:7, tab:"summer", name:"Free Summer Meals & Play", org:"New Bedford Parks & Rec", ages:"5–14", ageMin:5, ageMax:14, cost:"Free", price:0, free:true, dates:"Jun 29 – Aug 21", hours:"11am – 2pm", spots:"open", spotsText:"Drop in, no signup",
+    address:"Multiple city parks", bus:true, lang:true, scholarship:false,
+    desc:"Free lunch plus supervised games and crafts at neighborhood parks. No registration needed.", contact:"City hotline · (508) 555-0199" },
+  { id:8, tab:"summer", name:"Junior Lifeguard Academy", org:"YMCA Southcoast", ages:"12–15", ageMin:12, ageMax:15, cost:"$180/session", price:180, free:false, dates:"Aug 3 – Aug 14", hours:"12pm – 4pm", spots:"few", spotsText:"4 spots left",
+    address:"25 South Water Street, New Bedford", bus:true, lang:false, scholarship:true,
+    desc:"Two weeks of swim conditioning, rescue skills, and first aid, ending in a certification test.", contact:"Marc Teixeira · mteixeira@ymcasc.org" },
+  { id:9, tab:"year", name:"After-School Homework Club", org:"Boys & Girls Club of New Bedford", ages:"6–14", ageMin:6, ageMax:14, cost:"$50/year", price:50, free:false, dates:"Sep – Jun", hours:"2:30pm – 6pm", spots:"open", spotsText:"Spots open",
+    address:"166 Jenney Street, New Bedford", bus:true, lang:true, scholarship:true,
+    desc:"Daily homework help, snack, and gym time until parents get off work.", contact:"Robert Mendes · rmendes@bgcnewbedford.org" },
+  { id:10, tab:"year", name:"Youth Sailing & Rowing", org:"Community Boating Center", ages:"9–17", ageMin:9, ageMax:17, cost:"$120/season", price:120, free:false, dates:"Apr – Oct", hours:"4pm – 6:30pm", spots:"few", spotsText:"Waitlist forming",
+    address:"community sailing dock, Pope's Island", bus:false, lang:false, scholarship:true,
+    desc:"Weekday evening sailing and rowing practice on the harbor for school-year athletes.", contact:"Kelly Nunes · kelly@communityboating.org" },
+  { id:11, tab:"year", name:"Girls Inc. Eureka!", org:"Girls Inc. of Southeastern MA", ages:"11–15", ageMin:11, ageMax:15, cost:"Free", price:0, free:true, dates:"Year-round", hours:"3pm – 6pm", spots:"open", spotsText:"Applications open",
+    address:"22 Union Street, New Bedford", bus:true, lang:true, scholarship:false,
+    desc:"A five-year STEM program with mentoring, college visits, and a paid summer internship.", contact:"Renata Costa · rcosta@girlsincsema.org" },
+  { id:12, tab:"year", name:"Teen Music Studio", org:"New Bedford Free Public Library", ages:"13–18", ageMin:13, ageMax:18, cost:"Free", price:0, free:true, dates:"Year-round", hours:"3:30pm – 7pm", spots:"open", spotsText:"Drop in, no signup",
+    address:"613 Pleasant Street, New Bedford", bus:true, lang:true, scholarship:false,
+    desc:"Recording booth, instruments, and weekly production workshops with local musicians.", contact:"Library teen desk · (508) 555-0175" }
+];
+
+const STATUS = {
+  open: { text:"Spots open", bg:"#E1F3E7", fg:"#0E6430" },
+  few:  { text:"Almost full", bg:"#FBEEDA", fg:"#8A5A08" },
+  full: { text:"Filled", bg:"#ECEFED", fg:"#7E8A83" }
+};
+
+const AGES = [
+  { label:"Any", min:0, max:99 },
+  { label:"5–7", min:5, max:7 },
+  { label:"8–10", min:8, max:10 },
+  { label:"11–13", min:11, max:13 },
+  { label:"14+", min:14, max:18 }
+];
+
+const FILTERS = [
+  { key:"available", label:"Spots available" },
+  { key:"free", label:"Free or scholarship" },
+  { key:"bus", label:"Bus accessible" },
+  { key:"lang", label:"Language support" }
+];
+
+const chipBase = "border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;padding:9px 14px;transition:all .12s;";
+const pillBase = "border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;padding:9px 16px;transition:all .12s;";
+
+class Component extends DCLogic {
+  state = { query:"", age:"Any", filters:{}, tab:"summer" };
+
+  toggle(key) {
+    this.setState(s => ({ filters: { ...s.filters, [key]: !s.filters[key] } }));
+  }
+
+  renderVals() {
+    const s = this.state;
+    const showDesc = this.props.showDescriptions ?? true;
+    const sortBy = this.props.sortBy ?? "Availability first";
+    const range = AGES.find(a => a.label === s.age) || AGES[0];
+    const q = s.query.trim().toLowerCase();
+
+    let list = PROGRAMS.filter(p => p.tab === s.tab)
+      .filter(p => !q || (p.name + " " + p.org + " " + p.desc).toLowerCase().includes(q))
+      .filter(p => s.age === "Any" || (p.ageMin <= range.max && p.ageMax >= range.min))
+      .filter(p => !s.filters.available || p.spots !== "full")
+      .filter(p => !s.filters.free || p.free || p.scholarship)
+      .filter(p => !s.filters.bus || p.bus)
+      .filter(p => !s.filters.lang || p.lang);
+
+    const rank = { open:0, few:1, full:2 };
+    if (sortBy === "Price (low to high)") list = [...list].sort((a,b) => a.price - b.price);
+    else if (sortBy === "Name (A–Z)") list = [...list].sort((a,b) => a.name.localeCompare(b.name));
+    else list = [...list].sort((a,b) => rank[a.spots] - rank[b.spots] || a.price - b.price);
+
+    const badge = (label, tone) => ({
+      label,
+      style: "font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:8px;" +
+        (tone === "free" ? "background:#E3F0F8;color:#1B6FA8;" : "background:#EAF1EC;color:#3F4F45;")
+    });
+
+    const results = list.map(p => {
+      const st = STATUS[p.spots];
+      const badges = [];
+      if (p.free) badges.push(badge("Free", "free"));
+      else if (p.scholarship) badges.push(badge("Scholarships", "free"));
+      if (p.bus) badges.push(badge("Bus accessible"));
+      if (p.lang) badges.push(badge("Language support"));
+      return {
+        ...p, badges,
+        statusText: p.spotsText || st.text,
+        statusStyle: `flex:none;background:${st.bg};color:${st.fg};font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:999px;white-space:nowrap`,
+        costStyle: `font-family:'Montserrat',sans-serif;font-size:19px;font-weight:700;margin-top:2px;${p.free ? "color:#0E6430" : ""}`
+      };
+    });
+
+    const ageChips = AGES.map(a => ({
+      label: a.label,
+      onClick: () => this.setState({ age: a.label }),
+      style: chipBase + (a.label === s.age
+        ? "background:#157F3D;color:#FFFFFF;border:none;"
+        : "background:transparent;color:#3F4F45;border:none;")
+    }));
+
+    const filterChips = FILTERS.map(f => ({
+      label: f.label,
+      onClick: () => this.toggle(f.key),
+      style: pillBase + (s.filters[f.key]
+        ? "background:#157F3D;color:#FFFFFF;border:1.5px solid #157F3D;"
+        : "background:#fff;color:#3F4F45;border:1.5px solid #CFDCD3;")
+    }));
+
+    const tabs = [
+      { key:"summer", label:"Summer camps" },
+      { key:"year", label:"Year-round programs" }
+    ].map(t => ({
+      label: t.label,
+      onClick: () => this.setState({ tab: t.key }),
+      style: "border:none;cursor:pointer;font-size:15px;font-weight:600;padding:10px 18px;border-radius:9px;transition:all .12s;" +
+        (s.tab === t.key ? "background:#fff;color:#157F3D;box-shadow:0 1px 3px rgba(22,48,43,0.12);" : "background:transparent;color:#4F5F55;")
+    }));
+
+    const anyFilter = !!q || s.age !== "Any" || FILTERS.some(f => s.filters[f.key]);
+
+    return {
+      results, ageChips, filterChips, tabs, anyFilter, showDesc,
+      query: s.query,
+      onQuery: e => this.setState({ query: e.target.value }),
+      clearAll: () => this.setState({ query:"", age:"Any", filters:{} }),
+      empty: results.length === 0,
+      resultLabel: results.length === 1 ? "1 program" : results.length + " programs",
+      totalCount: PROGRAMS.length,
+      openCount: PROGRAMS.filter(p => p.spots !== "full").length
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -48,23 +48,55 @@ Leave blank when genuinely not applicable — that's expected, not an error.
 - **Description** — 1-2 plain-text sentences summarizing what the program actually
   does (activities, focus, vibe), written for a parent. Shown (truncated to ~180
   characters) on the card. Leave blank if there's genuinely nothing to add.
-- **Categorization** — one or more activity categories. These become the filter
-  chips above the programs and the tags shown on each card. Separate multiple
-  categories with a semicolon, e.g. `Sports/Recreation; Visual Arts/Performing
-  Arts/Culture`. Whatever names you type become chips automatically, so spelling
-  and capitalization must match **exactly** across rows (otherwise "Sports" and
-  "sports" become two separate chips). To keep this directory consistent with the
-  organizations one, reuse those category names:
-  Academic Achievement, Health Safety & Wellness, Mental Health Services,
-  Mentoring/Leadership, Science/Nature, Sports/Recreation,
+- **Categorization** — one or more activity categories, separated by a semicolon
+  (a comma also works, since that's what Google Forms checkboxes produce). Keep
+  using GNBYA's own category names so this directory stays consistent with the
+  organizations one: Academic Achievement, Health Safety & Wellness, Mental
+  Health Services, Mentoring/Leadership, Science/Nature, Sports/Recreation,
   Visual Arts/Performing Arts/Culture, Vocational Readiness. Leave blank if a
-  program doesn't fit any category yet.
+  program doesn't fit any category yet. See "What parents actually see" below.
 
-## Not yet staff-editable
+## What parents actually see (categories)
 
-- **Category** (arts/sports/STEM/etc.) — reserved for a future categorization pass,
-  not exposed until designed in Task 4/5.
-- **Season** — reserved for year-round expansion, not exposed until then.
+**You type GNBYA's category names; the site shows plain-language ones.** The
+translation happens in the app, so nothing in the sheet or the form changes:
+
+- Academic Achievement → 📚 Homework & Tutoring
+- Visual Arts/Performing Arts/Culture → 🎨 Arts & Culture
+- Sports/Recreation → ⚽ Sports & Recreation
+- Science/Nature → 🔬 Science & Nature
+- Health Safety & Wellness **and** Mental Health Services → 💚 Health & Wellness
+- Mentoring/Leadership → 🤝 Mentoring & Leadership
+- Vocational Readiness → 💼 Jobs & Career Skills
+- Care Infant and Toddler → 👶 Infant & Toddler Care
+- Care Preschool → 🧸 Preschool Care
+- Care School Age → 🎒 School-Age Care
+
+Two things follow from this. The **two health categories merge into one chip**
+for parents, while staying separate in your data — funders still see the
+distinction, families don't have to reason about it. And **near-misses are
+tolerated**: a cell truncated to "Visual Arts/Performing Arts/" still lands on
+Arts & Culture rather than creating a broken duplicate chip. Exact spelling is
+no longer load-bearing, though it's still worth keeping tidy.
+
+A category name the app doesn't recognise isn't dropped — it appears as its own
+chip, just without an emoji. That's the signal you've invented a new one.
+
+To change a label or add a category, ask the developer to update
+`CATEGORY_DISPLAY` in `js/data.js`.
+
+## Which tab a program appears on
+
+- **Summer camp?** — a tick box. Ticked → the **Summer Camps** tab. Unticked →
+  the **Current Activities** tab. Until this column is added to the sheet every
+  listing is treated as a summer camp; see `planned-fields.md` for how to add it.
+- **Season** — superseded by the tick box above. Not used.
+
+## Filters parents asked for that aren't built yet
+
+Availability and waitlists, registration dates, the summer week picker,
+full-vs-partial day, vacation weeks, and the cost slider all need columns that
+don't exist yet. `planned-fields.md` has the spec for each.
 
 ## Recommended for the future Google Sheet (Task 5)
 
@@ -105,11 +137,12 @@ on it.
 - **Youth development services** — from: Academic Achievement, Health Safety &
   Wellness, Mental Health Services, Mentoring/Leadership, Science/Nature,
   Sports/Recreation, Visual Arts/Performing Arts/Culture, Vocational Readiness.
-  These power the category filter chips in the app.
+  These power the category filter chips, translated as described in "What
+  parents actually see" above.
 - **Program year** — from: Full Year, Full Year With Limited Winter Programs,
   School Year, School Holidays/ Breaks, Summer.
 - **Program model** — from: Before School, After School, Full Day, Partial Day,
-  Evening, Weekend Only, Summer Only. Powers the "Schedule type" filter.
+  Evening, Weekend Only, Summer Only.
 - **Cost** — from: Free, Fee, Financial Assistance, Slide Scale Based on
   Income, Accepts Child Care Subsidies. "Free or financial help" filtering
   matches everything except plain "Fee".
