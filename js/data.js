@@ -58,28 +58,80 @@ function toCategoryList(value) {
   return value.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
 }
 
+// Read the first column that's actually present, in preference order.
+//
+// The intake form's questions get renamed and split as it evolves ("Bus
+// Accessible?" became "Transportation Accessible?"), and the published sheet
+// can carry either generation of header for a while — the form changes on one
+// day, the Live listings tab catches up on another. Listing the names we
+// accept means the site rides through that gap instead of going blank on
+// whichever half hasn't caught up yet.
+function pick(record, ...names) {
+  for (const name of names) {
+    const value = record[name];
+    if (value !== undefined && value.trim() !== "") return value;
+  }
+  return "";
+}
+
+// Yes/No answers the form now asks directly. Older rows predate the questions
+// and only have free-text cost, so fall back to reading that — otherwise every
+// listing migrated before the form changed would look not-free.
+function toFreeFlag(record, costText) {
+  const explicit = pick(record, "Is the program free?");
+  if (explicit !== "") return toBool(explicit);
+  return /\bfree\b/i.test(costText || "");
+}
+
+function toScholarshipFlag(record, costText) {
+  const explicit = pick(record, "Scholarships Provided?");
+  if (explicit !== "") return toBool(explicit);
+  return /scholarship|financial aid|slid(e|ing) scale/i.test(costText || "");
+}
+
 // ---------- category display layer ----------
 //
-// GNBYA's own taxonomy (from the resource guide) is what staff type into the
-// sheet and pick in the form. It's accurate but it isn't plain language — a
-// parent looking for a dance class doesn't scan for "Visual Arts/Performing
-// Arts/Culture", and "Health Safety & Wellness" vs "Mental Health Services" is
-// a distinction that matters to funders, not to families.
+// Two generations of taxonomy feed this app and neither is plain language on
+// its own:
 //
-// So the raw value stays in the sheet and we translate it here, for display
-// only. Nothing upstream changes. Two raw values may map to the SAME label
-// (both health categories merge into one), which is why the app filters on
+//   - The organizations directory uses GNBYA's resource-guide names, which are
+//     coarse and institutional ("Visual Arts/Performing Arts/Culture", "Health
+//     Safety & Wellness" vs "Mental Health Services").
+//   - The intake form now asks for granular values instead ("Music", "Art",
+//     "Theatre", "Science", "Nature", "Mentoring", "Leadership").
+//
+// Both are translated here, for display only — nothing upstream changes. Many
+// raw values may map to the SAME label (both health categories merge into one;
+// Science and Nature merge back together), which is why the app filters on
 // these labels rather than on the raw values.
 //
-// Matching is a regex against the raw text, so near-misses still land correctly
-// — e.g. a cell truncated to "Visual Arts/Performing Arts/" still reads as Arts
-// & Culture. Order matters: the first pattern that matches wins.
+// Arts is the one place we deliberately keep the form's granularity: parents
+// asked for "Music"/"Art"/"Theater" rather than one arts bucket, and the form
+// now supplies them separately. Organizations can't be split the same way — one
+// coarse value can't become three — so they keep a combined "Arts & Culture"
+// chip. That's fine because chips are built from whatever the current tab's
+// data contains, so no tab ever shows a chip that matches nothing on it.
+//
+// ORDER MATTERS TWICE OVER, so the two lists below are deliberately separate:
+// CATEGORY_DISPLAY is in *match precedence* order (first pattern to match
+// wins), CATEGORY_ORDER is in *display* order. Every label here must appear
+// there.
 const CATEGORY_DISPLAY = [
+  // Coarse resource-guide values go first — they contain words the granular
+  // patterns below would otherwise claim ("...Performing Arts/Culture" would
+  // be caught by Culture, and "Visual Arts" by Art).
+  { label: "🎨 Arts & Culture", match: /visual arts|performing arts/i },
+  // Granular intake-form values, anchored: these arrive as exact checkbox
+  // labels, and loose matching would steal the coarse values above.
+  { label: "🎵 Music", match: /^music$/i },
+  { label: "🖌️ Art", match: /^art$/i },
+  { label: "🎭 Theater", match: /^theat(er|re)$/i },
+  { label: "🌍 Culture", match: /^culture$/i },
+  // Everything else merges old and new spellings into one label apiece.
   { label: "📚 Homework & Tutoring", match: /academic|tutor|homework|literacy/i },
-  { label: "🎨 Arts & Culture", match: /visual arts|performing arts|culture|music|dance|theat/i },
   { label: "⚽ Sports & Recreation", match: /sports|recreation|athletic/i },
   { label: "🔬 Science & Nature", match: /science|nature|stem|technolog/i },
-  { label: "💚 Health & Wellness", match: /health|wellness|mental|safety/i },
+  { label: "💚 Health & Wellness", match: /health|wellness|wellbeing|mental|safety/i },
   { label: "🤝 Mentoring & Leadership", match: /mentor|leader/i },
   { label: "💼 Jobs & Career Skills", match: /vocational|career|job|workforce/i },
   { label: "👶 Infant & Toddler Care", match: /infant|toddler/i },
@@ -87,7 +139,22 @@ const CATEGORY_DISPLAY = [
   { label: "🎒 School-Age Care", match: /school.?age/i },
 ];
 
-const CATEGORY_ORDER = CATEGORY_DISPLAY.map((c) => c.label);
+const CATEGORY_ORDER = [
+  "📚 Homework & Tutoring",
+  "🎨 Arts & Culture",
+  "🎵 Music",
+  "🖌️ Art",
+  "🎭 Theater",
+  "🌍 Culture",
+  "⚽ Sports & Recreation",
+  "🔬 Science & Nature",
+  "💚 Health & Wellness",
+  "🤝 Mentoring & Leadership",
+  "💼 Jobs & Career Skills",
+  "👶 Infant & Toddler Care",
+  "🧸 Preschool Care",
+  "🎒 School-Age Care",
+];
 
 // An unrecognised value passes through untouched rather than being dropped —
 // a new category invented upstream still shows up, just without an emoji.
@@ -128,6 +195,9 @@ function toSummerCampFlag(record) {
 
 function mapRecordToProgram(record) {
   const rawCategories = toCategoryList(record["Categorization"]);
+  // The form dropped its free-text "Cost" question in favour of a required
+  // enrolment figure plus two Yes/No flags. Either may be what's published.
+  const cost = pick(record, "Cost", "Program Enrollment Cost");
   return {
     id: slugify(`${record["Organization Name"]}-${record["Program Name"]}`),
     organizationName: record["Organization Name"],
@@ -147,14 +217,23 @@ function mapRecordToProgram(record) {
     },
     sessionDates: toNullableString(record["Session Dates"]),
     hours: toNullableString(record["Hours"]),
-    cost: toNullableString(record["Cost"]),
+    cost: toNullableString(cost),
+    // Free and financial aid are separate filters, so they're separate flags —
+    // a $300 camp with scholarships is not free, but it isn't out of reach
+    // either, and collapsing the two hid that from exactly the parents who
+    // needed to see it.
+    isFree: toFreeFlag(record, cost),
+    scholarships: toScholarshipFlag(record, cost),
     address: toNullableString(record["Address"]),
-    busAccessible: toBool(record["Bus Accessible?"]),
+    busAccessible: toBool(pick(record, "Transportation Accessible?", "Bus Accessible?")),
     nearestBusRoute: toNullableString(record["Nearest Bus Route/Stop"]),
-    staffLanguageSupport: toNullableString(record["Staff Language Support"]),
-    translationAvailable: record["Translation Available"]
-      ? record["Translation Available"].split(",").map((s) => s.trim())
-      : null,
+    staffLanguageSupport: toNullableString(
+      pick(record, "Translation Available?", "Staff Language Support")
+    ),
+    translationAvailable: (() => {
+      const langs = pick(record, "Languages Provided", "Translation Available");
+      return langs ? langs.split(",").map((s) => s.trim()).filter(Boolean) : null;
+    })(),
     contact: record["Contact"],
     season: toNullableString(record["Season"]) || "summer",
     description: toNullableString(record["Description"]),

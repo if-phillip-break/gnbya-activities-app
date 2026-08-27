@@ -19,7 +19,8 @@ const AGES = [
 // Toggle pills for the two program tabs. Organizations get quick buttons
 // instead (ORG_QUICK) because their filters are facet values, not flags.
 const PROGRAM_TOGGLES = [
-  { key: "free", label: "Free or scholarship" },
+  { key: "free", label: "Free" },
+  { key: "aid", label: "Financial aid" },
   { key: "bus", label: "Bus accessible" },
   { key: "lang", label: "Language support" },
 ];
@@ -111,8 +112,8 @@ let query = "";
 let ageLabel = "Any";
 // Toggle + category selections are kept per tab so switching tabs is lossless.
 const toggleState = {
-  summer: { free: false, bus: false, lang: false },
-  current: { free: false, bus: false, lang: false },
+  summer: { free: false, aid: false, bus: false, lang: false },
+  current: { free: false, aid: false, bus: false, lang: false },
   year: {},
 };
 // Categories are chips on every tab now — parents were missing them when they
@@ -128,8 +129,13 @@ ORG_FACETS.forEach((f) => (selectedFacets[f.key] = new Set()));
 
 // ---------- shared predicates ----------
 
+// The mapper resolves these from the form's Yes/No answers, falling back to the
+// cost text for rows that predate those questions — so the UI just reads flags.
 function programIsFree(p) {
-  return /free|scholarship/i.test(p.cost || "");
+  return p.isFree === true;
+}
+function programHasAid(p) {
+  return p.scholarships === true;
 }
 function programHasLanguage(p) {
   const staff =
@@ -218,6 +224,7 @@ function filteredList() {
       if (q && !hay.includes(q)) return false;
       if (!ageOverlaps(p.ageRange.min, p.ageRange.max, range)) return false;
       if (t.free && !programIsFree(p)) return false;
+      if (t.aid && !programHasAid(p)) return false;
       if (t.bus && !p.busAccessible) return false;
       if (t.lang && !programHasLanguage(p)) return false;
       if (cats.size > 0 && !p.categories.some((c) => cats.has(c))) return false;
@@ -272,8 +279,8 @@ function tagRow(categories) {
 
 function programCardHTML(p) {
   const badges = [];
-  if (/free/i.test(p.cost || "")) badges.push(badge("Free", "info"));
-  else if (/scholarship/i.test(p.cost || "")) badges.push(badge("Scholarships", "info"));
+  if (programIsFree(p)) badges.push(badge("Free", "info"));
+  else if (programHasAid(p)) badges.push(badge("Financial aid", "info"));
   if (p.busAccessible) badges.push(badge("Bus accessible", "plain"));
   if (programHasLanguage(p)) badges.push(badge("Language support", "plain"));
 
@@ -288,7 +295,7 @@ function programCardHTML(p) {
 
       <div class="fact-grid">
         ${factCell("Ages", p.ageRange.display, { big: true })}
-        ${factCell("Cost", p.cost, { big: true, free: programIsFree(p) })}
+        ${factCell("Cost", p.cost || (programIsFree(p) ? "Free" : null), { big: true, free: programIsFree(p) })}
         ${factCell("Dates", p.sessionDates)}
         ${factCell("Hours", p.hours)}
       </div>

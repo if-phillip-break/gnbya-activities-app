@@ -28,13 +28,18 @@ Always fill these in — the app or a parent depends on them directly.
 - **Ages or grades** — e.g. "Ages 7-13" or "Grades 1-6." Plain text, written the way a
   parent would understand it.
 - **Session dates** — e.g. "July 1 - Aug 28."
-- **Cost** — e.g. "$50/week," "Free," "Scholarships available." Never leave blank.
-- **Bus accessible?** — Yes / No. Drives the bus-access filter.
+- **Is the program free?** — Yes / No. Drives the **Free** filter button.
+- **Scholarships Provided?** — Yes / No. Drives the **Financial aid** button. Answer
+  this even when the program is free; the two are separate questions.
+- **Program Enrollment Cost** — e.g. "$50/week," "$280 (2-week session)." This is the
+  text a parent reads on the card, so write it the way you'd say it out loud.
+- **Transportation Accessible?** — Yes / No. Drives the bus-access filter.
 - **Contact** — name, email, and/or phone. The one guaranteed way a parent can follow up.
 
 ## Conditional
 
-- **Nearest bus route/stop** — only needed when "Bus accessible?" is No.
+- **Nearest Bus Route/Stop** — only needed when "Transportation Accessible?" is No.
+- **Languages Provided** — only when "Translation Available?" is Yes. Comma-separated.
 
 ## Optional
 
@@ -48,18 +53,31 @@ Leave blank when genuinely not applicable — that's expected, not an error.
 - **Description** — 1-2 plain-text sentences summarizing what the program actually
   does (activities, focus, vibe), written for a parent. Shown (truncated to ~180
   characters) on the card. Leave blank if there's genuinely nothing to add.
-- **Categorization** — one or more activity categories, separated by a semicolon
-  (a comma also works, since that's what Google Forms checkboxes produce). Keep
-  using GNBYA's own category names so this directory stays consistent with the
-  organizations one: Academic Achievement, Health Safety & Wellness, Mental
-  Health Services, Mentoring/Leadership, Science/Nature, Sports/Recreation,
-  Visual Arts/Performing Arts/Culture, Vocational Readiness. Leave blank if a
-  program doesn't fit any category yet. See "What parents actually see" below.
+- **Categorization** — tick every category that applies. The intake form offers:
+  Academics, Art, Career Readiness, Culture, Health & Wellbeing, Leadership,
+  Mentoring, Music, Nature, Science, Sports, Theatre. Leave blank if a program
+  doesn't fit any category yet. See "What parents actually see" below.
 
 ## What parents actually see (categories)
 
-**You type GNBYA's category names; the site shows plain-language ones.** The
-translation happens in the app, so nothing in the sheet or the form changes:
+**The site relabels categories in plain language and adds an emoji.** The
+translation happens in the app, so nothing in the sheet or the form changes.
+
+From the intake form:
+
+- Academics → 📚 Homework & Tutoring
+- Music → 🎵 Music
+- Art → 🖌️ Art
+- Theatre → 🎭 Theater
+- Culture → 🌍 Culture
+- Sports → ⚽ Sports & Recreation
+- Science **and** Nature → 🔬 Science & Nature
+- Health & Wellbeing → 💚 Health & Wellness
+- Mentoring **and** Leadership → 🤝 Mentoring & Leadership
+- Career Readiness → 💼 Jobs & Career Skills
+
+The organizations directory still uses GNBYA's older resource-guide names, and
+those are translated too, so a chip means the same thing wherever it appears:
 
 - Academic Achievement → 📚 Homework & Tutoring
 - Visual Arts/Performing Arts/Culture → 🎨 Arts & Culture
@@ -68,16 +86,16 @@ translation happens in the app, so nothing in the sheet or the form changes:
 - Health Safety & Wellness **and** Mental Health Services → 💚 Health & Wellness
 - Mentoring/Leadership → 🤝 Mentoring & Leadership
 - Vocational Readiness → 💼 Jobs & Career Skills
-- Care Infant and Toddler → 👶 Infant & Toddler Care
-- Care Preschool → 🧸 Preschool Care
-- Care School Age → 🎒 School-Age Care
+- Care Infant and Toddler / Care Preschool / Care School Age → 👶 / 🧸 / 🎒
 
-Two things follow from this. The **two health categories merge into one chip**
-for parents, while staying separate in your data — funders still see the
-distinction, families don't have to reason about it. And **near-misses are
+Three things follow from this. **Several values merge into one chip** — both
+health categories, and Science with Nature — so families aren't asked to reason
+about distinctions that matter to funders rather than to them. **Music, Art and
+Theatre stay separate**, because parents asked for those by name and the form
+now collects them separately; organizations keep a single "Arts & Culture" chip
+since one coarse value can't be split into three. And **near-misses are
 tolerated**: a cell truncated to "Visual Arts/Performing Arts/" still lands on
-Arts & Culture rather than creating a broken duplicate chip. Exact spelling is
-no longer load-bearing, though it's still worth keeping tidy.
+Arts & Culture rather than creating a broken duplicate chip.
 
 A category name the app doesn't recognise isn't dropped — it appears as its own
 chip, just without an emoji. That's the signal you've invented a new one.
