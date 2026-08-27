@@ -69,17 +69,19 @@ an honest absence beats a confident wrong answer.
 Keep the existing free-text `Session Dates` column too — it's what parents read
 on the card ("July 1 – Aug 28"). These two are the machine-readable version.
 
-One pair of dates unlocks three things at once:
+**The calendar filter already ships**, working off dates parsed out of the
+free-text column — 20 of the 22 listings read correctly, and the two that don't
+say "Filled (no availability)", which contains no dates to find. So these
+columns are now an accuracy upgrade rather than a prerequisite. What they'd buy:
 
-- **The summer week picker** — the site works out which weeks each camp covers,
-  so nobody has to maintain a list of week checkboxes that changes every year.
-- **Knowing what's running right now**, without anyone re-tagging listings each
-  season.
-- **Sorting by start date**, so the soonest options come first.
+- **Certainty.** Parsing prose is a heuristic; a date column is a fact. Listings
+  we can't parse are shown rather than hidden, so today the failure mode is a
+  filter that's slightly too generous.
+- **Sorting by start date**, so the soonest options come first. This one really
+  does need the columns — you can't reliably order listings by a guess.
 
-This is deliberately two date columns instead of a "weeks offered" checkbox
-list. Checkboxes would have to be rebuilt on the form every single year; dates
-never go stale.
+Two date columns beat a "weeks offered" checkbox list, which would have to be
+rebuilt on the form every year; dates never go stale.
 
 ---
 

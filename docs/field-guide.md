@@ -27,7 +27,8 @@ Always fill these in — the app or a parent depends on them directly.
 - **GNBYA member?** — Yes / No.
 - **Ages or grades** — e.g. "Ages 7-13" or "Grades 1-6." Plain text, written the way a
   parent would understand it.
-- **Session dates** — e.g. "July 1 - Aug 28."
+- **Session Dates** — e.g. "July 1 - Aug 28." Also drives the calendar filter;
+  see "How you write Session Dates matters" below.
 - **Is the program free?** — Yes / No. Drives the **Free** filter button.
 - **Scholarships Provided?** — Yes / No. Drives the **Financial aid** button. Answer
   this even when the program is free; the two are separate questions.
@@ -110,11 +111,34 @@ To change a label or add a category, ask the developer to update
   listing is treated as a summer camp; see `planned-fields.md` for how to add it.
 - **Season** — superseded by the tick box above. Not used.
 
+## How you write Session Dates matters
+
+Parents can now pick days on a calendar, and the site works out which listings
+run then by **reading the dates back out of your Session Dates text**. You don't
+have to change how you write it — these all work today:
+
+- `Weekly sessions, 6/24-8/28`
+- `Session 1: June 29-July 10; Session 2: July 14-25`
+- `7/6-10 OR 7/27-31 (select one week)`
+- `Monday, July 13 to Friday, July 17`
+- `July 6-18 (8 slots); July 20-Aug 1 (8 slots)`
+
+Two things help:
+
+- **Write out both ends of every session.** "Starting June 16, ending week of
+  8/25" reads correctly, but "runs all summer" gives the calendar nothing.
+- **Don't worry about the year** — the current year is assumed. If a session
+  crosses New Year, the site works that out from the months.
+
+A listing whose dates can't be read — "Filled (no availability)", say — is
+**never hidden** by the date filter. It simply always shows. Missing a real
+program because of a parsing quirk would be worse than showing one extra.
+
 ## Filters parents asked for that aren't built yet
 
-Availability and waitlists, registration dates, the summer week picker,
-full-vs-partial day, vacation weeks, and the cost slider all need columns that
-don't exist yet. `planned-fields.md` has the spec for each.
+Availability and waitlists, registration dates, full-vs-partial day, vacation
+weeks, and the cost slider all need columns that don't exist yet.
+`planned-fields.md` has the spec for each.
 
 ## Recommended for the future Google Sheet (Task 5)
 

@@ -98,6 +98,7 @@ const emptyStateEl = document.getElementById("empty-state");
 const emptyClearBtn = document.getElementById("empty-clear");
 const emptyTitleEl = emptyStateEl.querySelector(".empty-title");
 const emptyHelpEl = emptyStateEl.querySelector(".empty-help");
+const dateFilterEl = document.getElementById("date-filter");
 
 // ---------- state ----------
 
@@ -127,6 +128,17 @@ const selectedCategories = {
 const selectedFacets = {};
 ORG_FACETS.forEach((f) => (selectedFacets[f.key] = new Set()));
 
+// Calendar date selection, per tab like everything else. `end` stays null while
+// the parent has clicked only one day, which reads as "programs running that
+// day" — a useful filter in its own right, not a half-finished range.
+const dateRangeState = {
+  summer: { start: null, end: null },
+  current: { start: null, end: null },
+  year: { start: null, end: null },
+};
+let calendarOpen = false;
+let calendarCursor = null; // "YYYY-MM" of the month on screen
+
 // ---------- shared predicates ----------
 
 // The mapper resolves these from the form's Yes/No answers, falling back to the
@@ -136,6 +148,15 @@ function programIsFree(p) {
 }
 function programHasAid(p) {
   return p.scholarships === true;
+}
+// A program matches if any of its sessions overlaps the chosen days. A listing
+// whose dates we couldn't read is never excluded — see the note in data.js:
+// hiding a real program is worse than showing one the parent must double-check.
+function programMatchesDates(p, range) {
+  if (!range.start) return true;
+  if (!p.sessionRanges || p.sessionRanges.length === 0) return true;
+  const end = range.end || range.start;
+  return p.sessionRanges.some((r) => r.s <= end && r.e >= range.start);
 }
 function programHasLanguage(p) {
   const staff =
@@ -163,6 +184,7 @@ function anyFilterActive() {
   if (query.trim() !== "" || ageLabel !== "Any") return true;
   if (selectedCategories[activeTab].size > 0) return true;
   if (isProgramTab(activeTab)) {
+    if (dateRangeState[activeTab].start) return true;
     return Object.values(toggleState[activeTab]).some(Boolean);
   }
   return ORG_FACETS.some((f) => selectedFacets[f.key].size > 0);
@@ -175,6 +197,8 @@ function activeFilterCount() {
   n += selectedCategories[activeTab].size;
   if (isProgramTab(activeTab)) {
     n += Object.values(toggleState[activeTab]).filter(Boolean).length;
+    // A date range is one filter however many days it spans.
+    if (dateRangeState[activeTab].start) n += 1;
   } else {
     // Quick buttons are shortcuts into the facets, so counting the facet
     // selections already covers them — don't double-count.
@@ -223,6 +247,7 @@ function filteredList() {
       );
       if (q && !hay.includes(q)) return false;
       if (!ageOverlaps(p.ageRange.min, p.ageRange.max, range)) return false;
+      if (!programMatchesDates(p, dateRangeState[activeTab])) return false;
       if (t.free && !programIsFree(p)) return false;
       if (t.aid && !programHasAid(p)) return false;
       if (t.bus && !p.busAccessible) return false;
@@ -496,10 +521,196 @@ function renderCategoryChips() {
 // ---------- organizations: facet dropdown menus ----------
 
 function closeAllFacetMenus() {
-  facetMenusEl.querySelectorAll(".facet-menu").forEach((m) => (m.hidden = true));
-  facetMenusEl.querySelectorAll(".facet-btn").forEach((b) =>
-    b.setAttribute("aria-expanded", "false")
+  [facetMenusEl, dateFilterEl].forEach((root) => {
+    root.querySelectorAll(".facet-menu").forEach((m) => (m.hidden = true));
+    root.querySelectorAll(".facet-btn").forEach((b) =>
+      b.setAttribute("aria-expanded", "false")
+    );
+  });
+  calendarOpen = false;
+}
+
+// ---------- calendar date filter ----------
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function isoOf(year, monthIndex, day) {
+  return new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10);
+}
+function monthKey(iso) {
+  return iso.slice(0, 7);
+}
+function shiftMonth(key, delta) {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+function prettyDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${MONTH_NAMES[m - 1].slice(0, 3)} ${d}`;
+}
+
+// The programs the calendar describes: this tab's listings that have dates at
+// all. Undated ones are deliberately excluded here — they're never filtered
+// out, so counting them would make every day look equally busy.
+function datedPool() {
+  return allPrograms.filter(
+    (p) => p.isSummerCamp === (activeTab === "summer") && p.sessionRanges.length > 0
   );
+}
+
+function renderDateFilter() {
+  // Organizations have no session dates, so the control doesn't apply there.
+  if (!isProgramTab(activeTab)) {
+    dateFilterEl.hidden = true;
+    dateFilterEl.innerHTML = "";
+    return;
+  }
+  const pool = datedPool();
+  if (pool.length === 0) {
+    dateFilterEl.hidden = true;
+    dateFilterEl.innerHTML = "";
+    return;
+  }
+
+  // Only offer months the listings actually cover — paging through empty
+  // Februaries is noise.
+  let first = pool[0].sessionRanges[0].s;
+  let last = first;
+  pool.forEach((p) =>
+    p.sessionRanges.forEach((r) => {
+      if (r.s < first) first = r.s;
+      if (r.e > last) last = r.e;
+    })
+  );
+  const minMonth = monthKey(first);
+  const maxMonth = monthKey(last);
+
+  const sel = dateRangeState[activeTab];
+  if (!calendarCursor || calendarCursor < minMonth || calendarCursor > maxMonth) {
+    const today = new Date().toISOString().slice(0, 10);
+    calendarCursor = sel.start
+      ? monthKey(sel.start)
+      : monthKey(today > last ? first : today < first ? first : today);
+  }
+
+  const [cy, cm] = calendarCursor.split("-").map(Number);
+  const monthIndex = cm - 1;
+  const daysInMonth = new Date(Date.UTC(cy, cm, 0)).getUTCDate();
+  const leading = new Date(Date.UTC(cy, monthIndex, 1)).getUTCDay();
+  const rangeEnd = sel.end || sel.start;
+
+  let cells = "";
+  for (let i = 0; i < leading; i++) cells += `<span class="cal-day blank"></span>`;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = isoOf(cy, monthIndex, day);
+    const count = pool.filter((p) =>
+      p.sessionRanges.some((r) => r.s <= iso && r.e >= iso)
+    ).length;
+    const classes = ["cal-day"];
+    if (count === 0) classes.push("cal-none");
+    if (sel.start && iso === sel.start) classes.push("cal-start");
+    if (rangeEnd && iso === rangeEnd) classes.push("cal-end");
+    if (sel.start && rangeEnd && iso > sel.start && iso < rangeEnd) classes.push("cal-mid");
+    cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" title="${count} running">${day}</button>`;
+  }
+
+  const label = sel.start
+    ? sel.end && sel.end !== sel.start
+      ? `${prettyDate(sel.start)} – ${prettyDate(sel.end)}`
+      : prettyDate(sel.start)
+    : "Any dates";
+
+  const hint = !sel.start
+    ? "Pick a day, then a second day for a range."
+    : !sel.end
+      ? "Pick a second day for a range, or leave it for one day."
+      : "";
+
+  dateFilterEl.innerHTML = `
+    <span class="chip-label">When</span>
+    <div class="facet date-facet">
+      <button type="button" class="facet-btn ${sel.start ? "active" : ""}" aria-expanded="false" aria-haspopup="true">
+        <span aria-hidden="true">🗓</span> ${label}<span class="facet-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="facet-menu cal-menu" hidden>
+        <div class="cal-head">
+          <button type="button" class="cal-nav" data-nav="-1" ${calendarCursor <= minMonth ? "disabled" : ""} aria-label="Previous month">‹</button>
+          <span class="cal-title">${MONTH_NAMES[monthIndex]} ${cy}</span>
+          <button type="button" class="cal-nav" data-nav="1" ${calendarCursor >= maxMonth ? "disabled" : ""} aria-label="Next month">›</button>
+        </div>
+        <div class="cal-grid cal-dow">${DAY_INITIALS.map((d) => `<span>${d}</span>`).join("")}</div>
+        <div class="cal-grid cal-days">${cells}</div>
+        <div class="cal-foot">
+          <span class="cal-hint">${hint}</span>
+          <button type="button" class="cal-clear" ${sel.start ? "" : "disabled"}>Clear dates</button>
+        </div>
+      </div>
+    </div>`;
+  dateFilterEl.hidden = false;
+  wireDateFilter();
+}
+
+function wireDateFilter() {
+  const btn = dateFilterEl.querySelector(".facet-btn");
+  const menu = dateFilterEl.querySelector(".cal-menu");
+  if (!btn || !menu) return;
+
+  // Re-rendering replaces the DOM, so restore whatever was open before.
+  if (calendarOpen) {
+    menu.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const willOpen = menu.hidden;
+    closeAllFacetMenus();
+    menu.hidden = !willOpen;
+    calendarOpen = willOpen;
+    btn.setAttribute("aria-expanded", String(willOpen));
+    if (willOpen) {
+      menu.classList.remove("align-right");
+      if (menu.getBoundingClientRect().right > document.documentElement.clientWidth - 8) {
+        menu.classList.add("align-right");
+      }
+    }
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+
+  menu.querySelectorAll(".cal-nav").forEach((nav) => {
+    nav.addEventListener("click", () => {
+      if (nav.disabled) return;
+      calendarCursor = shiftMonth(calendarCursor, Number(nav.dataset.nav));
+      renderDateFilter();
+    });
+  });
+
+  menu.querySelectorAll(".cal-day[data-date]").forEach((cell) => {
+    cell.addEventListener("click", () => {
+      const iso = cell.dataset.date;
+      const sel = dateRangeState[activeTab];
+      if (!sel.start || sel.end) {
+        // Nothing chosen yet, or a complete range — start a new one.
+        sel.start = iso;
+        sel.end = null;
+      } else if (iso < sel.start) {
+        sel.start = iso; // clicked earlier than the anchor: move the anchor
+      } else {
+        sel.end = iso;
+      }
+      calendarCursor = monthKey(iso);
+      applyFilters();
+    });
+  });
+
+  const clear = menu.querySelector(".cal-clear");
+  clear.addEventListener("click", () => {
+    dateRangeState[activeTab] = { start: null, end: null };
+    applyFilters();
+  });
 }
 
 function renderFacetMenus() {
@@ -582,6 +793,9 @@ function applyFilters() {
   const activeCount = activeFilterCount();
   filtersCountEl.textContent = activeCount ? ` (${activeCount})` : "";
   filtersToggleBtn.classList.toggle("has-active", activeCount > 0);
+  // Redrawn every pass so the button label and the highlighted days follow the
+  // selection; wireDateFilter() puts the popover back if it was open.
+  renderDateFilter();
 
   const def = tabDef(activeTab);
   const ds = def.dataset;
@@ -653,6 +867,8 @@ function setActiveTab(tab) {
   if (tab === activeTab) return;
   activeTab = tab;
   closeAllFacetMenus();
+  // Each tab keeps its own dates, so the visible month has to follow the tab.
+  calendarCursor = null;
   renderTabs();
   renderToggles();
   renderCategoryChips();
@@ -667,6 +883,7 @@ function clearAll() {
   const t = toggleState[activeTab];
   Object.keys(t).forEach((k) => (t[k] = false));
   selectedCategories[activeTab].clear();
+  dateRangeState[activeTab] = { start: null, end: null };
   ORG_FACETS.forEach((f) => selectedFacets[f.key].clear());
   renderAgeChips();
   renderToggles();

@@ -324,6 +324,111 @@ input, button, select { font-family: inherit; }
   accent-color: var(--green);
 }
 
+/* ---- Calendar date filter ---------------------------------------------
+   Reuses .facet / .facet-btn / .facet-menu so it reads as one of the filter
+   controls rather than a widget bolted on. */
+.cal-menu {
+  min-width: 268px;
+  padding: 10px;
+  overflow: visible;      /* the month grid sizes itself; no inner scrollbar */
+  max-height: none;
+}
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cal-title {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+.cal-nav {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-2);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cal-nav:hover:not(:disabled) { border-color: var(--green); color: var(--green); }
+.cal-nav:disabled { opacity: 0.35; cursor: default; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-dow span {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  padding-bottom: 4px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  min-height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cal-day.blank { cursor: default; }
+/* Exclude the selected ends: the cursor naturally rests on the day just
+   clicked, and a plain :hover rule outranks .cal-start/.cal-end on specificity,
+   which made the end of the range look unselected. */
+.cal-day:hover:not(.blank):not(.cal-start):not(.cal-end) {
+  background: rgba(21, 127, 61, 0.12);
+}
+/* Days no listing covers stay clickable — undated programs may still match —
+   but shouldn't read as equally full. */
+.cal-day.cal-none { color: var(--text-2); opacity: 0.4; font-weight: 400; }
+.cal-day.cal-mid { background: rgba(21, 127, 61, 0.14); border-radius: 0; }
+.cal-day.cal-start,
+.cal-day.cal-end {
+  background: var(--green);
+  color: #fff;
+  opacity: 1;
+  font-weight: 700;
+}
+
+.cal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.cal-hint {
+  font-size: 11.5px;
+  color: var(--text-2);
+  line-height: 1.3;
+}
+.cal-clear {
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--green);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.cal-clear:disabled { color: var(--text-2); opacity: 0.5; cursor: default; }
+
 /* Category chip row (kept from the previous categorization feature) */
 .chip-row {
   border-top: 1px solid var(--border);

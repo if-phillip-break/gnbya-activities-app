@@ -173,6 +173,134 @@ function toDisplayCategories(rawList) {
   return [...known, ...unknown];
 }
 
+// ---------- session dates ----------
+//
+// Parents asked to filter by date, but the sheet only has a free-text
+// "Session Dates" column written for humans: "Weekly sessions, 6/24-8/28",
+// "Session 1: June 29-July 10; Session 2: July 14-25", "7/6-10 OR 7/27-31".
+//
+// So we read the dates back out of that text. This is a heuristic and it is
+// allowed to fail: a listing we can't parse is never hidden by the date
+// filter, the same way the age filter shows listings with no numeric ages
+// rather than guessing. Under-showing a real program is a worse failure than
+// over-showing one, because a parent can read the actual dates on the card but
+// can't find a listing that was filtered away.
+//
+// Once "Session start" / "Session end" date columns exist (see
+// planned-fields.md) they win outright and none of this guessing runs.
+
+const MONTH_INDEX = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+function isoDate(year, monthIndex, day) {
+  return new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10);
+}
+
+function monthTokenIndex(token) {
+  return MONTH_INDEX[String(token).slice(0, 3).toLowerCase()];
+}
+
+function isoFromMonthName(year, token, day) {
+  const i = monthTokenIndex(token);
+  return i === undefined ? null : isoDate(year, i, Number(day));
+}
+
+function isoFromNumeric(year, month, day) {
+  const i = Number(month) - 1;
+  return i < 0 || i > 11 ? null : isoDate(year, i, Number(day));
+}
+
+function bumpYear(iso) {
+  return `${Number(iso.slice(0, 4)) + 1}${iso.slice(4)}`;
+}
+
+// Weekday names are decoration between the dates we want ("Monday, July 13 to
+// Friday, July 17"), and they break the separator matching, so drop them first.
+const WEEKDAY_NOISE = /\b(mon|tues?|wed(nes)?|thur?s?|fri|sat(ur)?|sun)(day)?s?\b,?/gi;
+
+function parseSessionRanges(text, year) {
+  if (!text) return [];
+  let rest = String(text)
+    .replace(/[‐-―]/g, "-") // en/em dashes → hyphen
+    .replace(WEEKDAY_NOISE, " ")
+    .replace(/\s+/g, " ");
+
+  const MON = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*";
+  const DAY = "(\\d{1,2})(?:st|nd|rd|th)?";
+  const SEP = "\\s*(?:-|to|through|thru|until)\\s*";
+  const ranges = [];
+
+  // Most specific first. Each pattern blanks out what it consumed, so a later,
+  // looser pattern can't re-read the same characters as a second date.
+  const patterns = [
+    { re: new RegExp(`${MON}\\s+${DAY}${SEP}${MON}\\s+${DAY}`, "gi"),      // July 1 - Aug 28
+      take: (m) => [isoFromMonthName(year, m[1], m[2]), isoFromMonthName(year, m[3], m[4])] },
+    { re: new RegExp(`${MON}\\s+${DAY}${SEP}${DAY}`, "gi"),                // July 7-9
+      take: (m) => [isoFromMonthName(year, m[1], m[2]), isoFromMonthName(year, m[1], m[3])] },
+    { re: new RegExp(`(\\d{1,2})/(\\d{1,2})${SEP}(\\d{1,2})/(\\d{1,2})`, "gi"), // 6/24-8/28
+      take: (m) => [isoFromNumeric(year, m[1], m[2]), isoFromNumeric(year, m[3], m[4])] },
+    { re: new RegExp(`(\\d{1,2})/(\\d{1,2})${SEP}(\\d{1,2})`, "gi"),       // 7/13-17
+      take: (m) => [isoFromNumeric(year, m[1], m[2]), isoFromNumeric(year, m[1], m[3])] },
+    { re: new RegExp(`${MON}${SEP}${MON}`, "gi"),                          // May - December
+      take: (m) => {
+        const a = monthTokenIndex(m[1]);
+        const b = monthTokenIndex(m[2]);
+        return a === undefined || b === undefined
+          ? [null, null]
+          : [isoDate(year, a, 1), isoDate(year, b + 1, 0)];
+      } },
+    { re: new RegExp(`${MON}\\s+${DAY}`, "gi"),                            // July 13
+      take: (m) => {
+        const d = isoFromMonthName(year, m[1], m[2]);
+        return [d, d];
+      } },
+    { re: new RegExp(`(\\d{1,2})/(\\d{1,2})`, "gi"),                       // 8/25
+      take: (m) => {
+        const d = isoFromNumeric(year, m[1], m[2]);
+        return [d, d];
+      } },
+  ];
+
+  for (const pattern of patterns) {
+    rest = rest.replace(pattern.re, (...args) => {
+      const [start, end] = pattern.take(args.slice(0, -2));
+      if (start && end) ranges.push({ s: start, e: end < start ? bumpYear(end) : end });
+      return " ";
+    });
+  }
+
+  const sorted = ranges.sort((a, b) => (a.s < b.s ? -1 : a.s > b.s ? 1 : 0));
+
+  // "Every session (starting June 16, ending week of 8/25)" reads as two lone
+  // days, which would hide the program for the whole summer in between. When a
+  // listing yields only single days and no actual range, span the earliest to
+  // the latest — over-showing is the failure we're willing to take.
+  if (sorted.length > 1 && sorted.every((r) => r.s === r.e)) {
+    return [{ s: sorted[0].s, e: sorted[sorted.length - 1].e }];
+  }
+  return sorted;
+}
+
+// A real date column beats anything we can infer from prose.
+function toIsoOrNull(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? null
+    : isoDate(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function toSessionRanges(record) {
+  const start = toIsoOrNull(pick(record, "Session start"));
+  if (start) {
+    const end = toIsoOrNull(pick(record, "Session end")) || start;
+    return [{ s: start, e: end < start ? start : end }];
+  }
+  return parseSessionRanges(pick(record, "Session Dates"), new Date().getFullYear());
+}
+
 function slugify(text) {
   return text
     .toLowerCase()
@@ -216,6 +344,9 @@ function mapRecordToProgram(record) {
       display: record["Ages or Grades"],
     },
     sessionDates: toNullableString(record["Session Dates"]),
+    // Machine-readable version of the line above, for the calendar filter.
+    // Empty when we couldn't read any dates — which means "don't filter me out".
+    sessionRanges: toSessionRanges(record),
     hours: toNullableString(record["Hours"]),
     cost: toNullableString(cost),
     // Free and financial aid are separate filters, so they're separate flags —
