@@ -13,7 +13,7 @@ Sheets that GNBYA staff edit directly; the app fetches each sheet as CSV on
 page load, so listing updates require **no code changes and no redeploy**.
 
 ```
-index.html        Two tabbed views: Summer Camps & Programs / Year-Round Organizations
+index.html        Three tabbed views: Current Activities / GNBYA Organizations / Summer Activities
 css/style.css     All styling; brand colors sampled from gnbya.org live in :root variables
 js/csv.js         CSV parser (handles quoted cells, embedded commas/newlines)
 js/data.js        Data source URLs + spreadsheet-record → app-object mapping
@@ -36,7 +36,7 @@ then open http://localhost:8000.
 
 | View | Source | Status |
 |---|---|---|
-| Summer Camps & Programs | [Placeholder Google Sheet](https://docs.google.com/spreadsheets/d/1oYJed7Vtqe3TbaG0d1rhDHn796ZOZYnXo3ZpoDYMdC0/edit) | Live |
+| Current Activities + Summer Activities | [Placeholder Google Sheet](https://docs.google.com/spreadsheets/d/1oYJed7Vtqe3TbaG0d1rhDHn796ZOZYnXo3ZpoDYMdC0/edit) | Live — one feed, split by the form's `Activity Type` answer |
 | Year-Round Organizations | [Placeholder Google Sheet](https://docs.google.com/spreadsheets/d/17GgTCCFufEu5ubDUKBWE-vdZjBNQA4TUHHdCsKF5cUg/edit) | Local copy until sheet sharing is enabled |
 
 Organization data originated from GNBYA's own resource-guide database

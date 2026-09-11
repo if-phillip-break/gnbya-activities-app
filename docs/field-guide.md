@@ -106,10 +106,19 @@ To change a label or add a category, ask the developer to update
 
 ## Which tab a program appears on
 
-- **Summer camp?** — a tick box. Ticked → the **Summer Camps** tab. Unticked →
-  the **Current Activities** tab. Until this column is added to the sheet every
-  listing is treated as a summer camp; see `planned-fields.md` for how to add it.
-- **Season** — superseded by the tick box above. Not used.
+- **Activity Type** — the intake form asks the organization directly.
+  "Summer Activities" → the **Summer Activities** tab. "Current Activities" →
+  the **Current Activities** tab, for programs running during the school year.
+- **A blank answer counts as Summer Activities.** That's where every listing
+  submitted before this question existed belongs, so nothing moved when the
+  question was added. If one of those older listings actually runs year-round,
+  type `Current Activities` into its cell in Form Responses.
+- **Summer camp?** and **Season** — earlier versions of this switch. Still read
+  if a row has them, but Activity Type wins. Nothing new needs them.
+
+The answer only reaches the site if `Activity Type` is in the Live listings
+header row *and* inside its FILTER range — see "Adding a column without breaking
+the site" in `planned-fields.md`.
 
 ## How you write Session Dates matters
 

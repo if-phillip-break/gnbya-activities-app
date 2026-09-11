@@ -523,6 +523,16 @@ input, button, select { font-family: inherit; }
   border-color: #D2C8B8;
 }
 
+/* Summer activity whose sessions have already ended: shown, but visibly muted
+   rather than removed — the listing may still be useful as a reference. */
+.card-past {
+  opacity: 0.55;
+  filter: grayscale(70%);
+}
+.card-past:hover {
+  opacity: 0.8;
+}
+
 .card-top {
   display: flex;
   align-items: flex-start;

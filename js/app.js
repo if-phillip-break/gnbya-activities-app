@@ -26,12 +26,16 @@ const PROGRAM_TOGGLES = [
 ];
 
 // Three tabs over two datasets. "summer" and "current" are two views of the
-// same programs feed, split by the sheet's "Summer camp?" tick box; "year" is
-// the organizations directory. `noun` labels the result count.
+// same programs feed, split by the intake form's Activity Type answer; "year"
+// is the organizations directory. `noun` labels the result count.
+//
+// Order here is display order: Current Activities leads (it's the default
+// tab), Summer Activities trails at the far right since it's only relevant
+// for part of the year.
 const TABS = [
-  { key: "summer", label: "Summer Camps", dataset: "programs", noun: "camp", nounPlural: "camps" },
   { key: "current", label: "Current Activities", dataset: "programs", noun: "activity", nounPlural: "activities" },
   { key: "year", label: "GNBYA Organizations", dataset: "orgs", noun: "organization", nounPlural: "organizations" },
+  { key: "summer", label: "Summer Activities", dataset: "programs", noun: "activity", nounPlural: "activities" },
 ];
 
 function tabDef(key) {
@@ -108,7 +112,7 @@ let allOrganizations = [];
 const dataReady = { programs: false, orgs: false };
 const loadError = { programs: null, orgs: null };
 
-let activeTab = "summer";
+let activeTab = "current";
 let query = "";
 let ageLabel = "Any";
 // Toggle + category selections are kept per tab so switching tabs is lossless.
@@ -157,6 +161,14 @@ function programMatchesDates(p, range) {
   if (!p.sessionRanges || p.sessionRanges.length === 0) return true;
   const end = range.end || range.start;
   return p.sessionRanges.some((r) => r.s <= end && r.e >= range.start);
+}
+// Whether every session we could read for this program is already over. A
+// listing with no parseable dates is never treated as ended — same
+// "never hide/gray a listing we're unsure about" rule the date filter follows.
+function programHasEnded(p) {
+  if (!p.sessionRanges || p.sessionRanges.length === 0) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return p.sessionRanges.every((r) => r.e < today);
 }
 function programHasLanguage(p) {
   const staff =
@@ -304,13 +316,17 @@ function tagRow(categories) {
 
 function programCardHTML(p) {
   const badges = [];
+  // Only Summer Activities has session dates worth flagging as over; Current
+  // Activities listings are ongoing by definition.
+  const ended = p.isSummerCamp && programHasEnded(p);
+  if (ended) badges.push(badge("Session ended", "plain"));
   if (programIsFree(p)) badges.push(badge("Free", "info"));
   else if (programHasAid(p)) badges.push(badge("Financial aid", "info"));
   if (p.busAccessible) badges.push(badge("Bus accessible", "plain"));
   if (programHasLanguage(p)) badges.push(badge("Language support", "plain"));
 
   return `
-    <article class="card">
+    <article class="card${ended ? " card-past" : ""}">
       <div class="card-top">
         <div style="min-width:0">
           <p class="card-org">${p.organizationName}</p>

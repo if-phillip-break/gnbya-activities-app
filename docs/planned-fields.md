@@ -4,8 +4,8 @@ Six filters came out of parent feedback that the site can't build yet, because
 there's no data behind them. This is the spec for those columns: what to add,
 what the options are, and what each one unlocks.
 
-Nothing here is urgent all at once — it's tiered. **Tier 1 is a single tick box
-and takes about a minute.** Work down only as far as you have appetite for; each
+Nothing here is urgent all at once — it's tiered. **Tier 1 is done**, as a
+question on the intake form. Work down only as far as you have appetite for; each
 tier stands on its own and the site degrades gracefully, hiding any filter whose
 column is empty rather than showing a broken one.
 
@@ -15,25 +15,32 @@ column is empty rather than showing a broken one.
 
 ---
 
-## Tier 1 — needed now
+## Tier 1 — done
 
-### `Summer camp?`
+### `Activity Type`
 
-The site has a **Current Activities** tab, but nothing can appear in it until
-this column exists. It's the switch that decides which of the two program tabs a
-listing shows up in.
+The switch that decides which of the two program tabs a listing shows up in.
+Originally specced as a staff tick box (`Summer camp?`); it ships instead as a
+question the submitting organization answers, so nobody has to classify
+listings after the fact.
 
 | Column | Type | Notes |
 |---|---|---|
-| `Summer camp?` | Tick box | Ticked → Summer Camps. Unticked → Current Activities. |
+| `Activity Type` | Multiple choice, required | `Summer Activities` → Summer Activities tab. `Current Activities` → Current Activities tab. |
 
-**To add it:** in "Form Responses 1", title the first empty column to the right
-`Summer camp?`, select the column, then Insert → Tick box. Then add it to the
-Live listings tab's header row and widen the FILTER range so it's included.
+**To wire it up:** add the question to the Form titled exactly `Activity Type`,
+then follow "Adding a column without breaking the site" below — the answer does
+nothing until the column is in the Live listings header row *and* inside its
+FILTER range.
 
-Until the column exists every listing is treated as a summer camp, which is
-where they all belong today — so the Current Activities tab sits empty and says
-so. Nothing breaks in the meantime.
+⚠️ Google decides where the new column lands in "Form Responses 1", and it may
+push `Show on site` to a different letter. Submit one test response and check
+both letters before ticking anything, or the FILTER will read the wrong column.
+
+A blank answer counts as Summer Activities, so every listing approved before the
+question existed stayed put. Backfill the ones that actually run year-round by
+typing `Current Activities` into the cell. The old `Summer camp?` and `Season`
+columns are still read if a row has them, but Activity Type wins.
 
 ---
 

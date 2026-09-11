@@ -308,17 +308,21 @@ function slugify(text) {
     .replace(/(^-|-$)/g, "");
 }
 
-// ---------- summer camps & programs ----------
+// ---------- programs (summer + current activities) ----------
 
-// Which of the two program tabs a listing belongs to. "Summer camp?" is a
-// tick-box column staff fill in on the intake sheet: ticked -> Summer Camps,
-// unticked -> Current Activities. Until that column exists everything falls
-// back to summer, which is where all current listings belong.
+// Which of the two program tabs a listing belongs to. The intake form asks the
+// submitting organization directly ("Summer Activities" / "Current
+// Activities"); "Summer camp?" is the older staff tick box, kept because rows
+// approved before the question existed still carry it. Anything naming summer
+// wins, a ticked box wins, everything else is a current activity.
+//
+// A row with none of these columns falls back to summer — where every listing
+// predating the question belongs — so the split degrades quietly rather than
+// emptying the Summer Activities tab.
 function toSummerCampFlag(record) {
-  const explicit = record["Summer camp?"];
-  if (explicit !== undefined && explicit.trim() !== "") return toBool(explicit);
-  const season = (record["Season"] || "summer").trim().toLowerCase();
-  return season === "" || season === "summer";
+  const answer = pick(record, "Activity Type", "Activity type", "Summer camp?", "Season");
+  if (answer === "") return true;
+  return /summer/i.test(answer) || toBool(answer);
 }
 
 function mapRecordToProgram(record) {
