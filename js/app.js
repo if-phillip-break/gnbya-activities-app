@@ -250,9 +250,9 @@ function filteredList() {
 
   if (isProgramTab(activeTab)) {
     const t = toggleState[activeTab];
-    // The two program tabs are one dataset split by the sheet's tick box.
+    // The two program tabs are one dataset split by the form's Activity Type.
     const wantSummerCamp = activeTab === "summer";
-    return allPrograms.filter((p) => {
+    const matches = allPrograms.filter((p) => {
       if (p.isSummerCamp !== wantSummerCamp) return false;
       const hay = searchHaystack(
         [p.programName, p.organizationName, p.description || ""], p
@@ -267,6 +267,12 @@ function filteredList() {
       if (cats.size > 0 && !p.categories.some((c) => cats.has(c))) return false;
       return true;
     });
+    // Finished sessions sink to the bottom so a parent scanning the page hits
+    // everything still joinable first. Sort is stable, so the sheet's order
+    // survives inside each group.
+    return matches.sort(
+      (a, b) => Number(programHasEnded(a)) - Number(programHasEnded(b))
+    );
   }
 
   return allOrganizations.filter((o) => {
@@ -316,9 +322,8 @@ function tagRow(categories) {
 
 function programCardHTML(p) {
   const badges = [];
-  // Only Summer Activities has session dates worth flagging as over; Current
-  // Activities listings are ongoing by definition.
-  const ended = p.isSummerCamp && programHasEnded(p);
+  // A listing whose sessions are all over is stale on either program tab.
+  const ended = programHasEnded(p);
   if (ended) badges.push(badge("Session ended", "plain"));
   if (programIsFree(p)) badges.push(badge("Free", "info"));
   else if (programHasAid(p)) badges.push(badge("Financial aid", "info"));
