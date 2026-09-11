@@ -523,8 +523,9 @@ input, button, select { font-family: inherit; }
   border-color: #D2C8B8;
 }
 
-/* Listing whose sessions have already ended: sorted to the bottom of its tab
-   and visibly muted rather than removed — still useful as a reference. */
+/* Listing a parent can't act on today — finished, or full: sorted to the bottom
+   of its tab and visibly muted rather than removed. Still worth reading, since
+   a full program may have a waitlist or run again next season. */
 .card-past {
   opacity: 0.55;
   filter: grayscale(70%);

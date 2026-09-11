@@ -170,6 +170,27 @@ function programHasEnded(p) {
   const today = new Date().toISOString().slice(0, 10);
   return p.sessionRanges.every((r) => r.e < today);
 }
+
+// Staff write capacity into the free-text fields ("Filled (no availability)",
+// "No availabilities"), so we read it back out the way session dates are read.
+//
+// Deliberately NOT matching a bare "full": the sheet is full of "Full summer",
+// "Full day" and "Full Year", and greying out a program that has space is the
+// expensive mistake here — it costs an organization enrolments. Missing a full
+// one only costs a parent the click they would have made anyway, so the list
+// stays strict and only grows when a real listing proves it needs to.
+const AT_CAPACITY = /\bfilled\b|no availabilit|\bat capacity\b|\bsold out\b|\bno (?:openings|spots|space|slots|vacancies)\b|\bwait\s?list only\b|\bregistration (?:is )?closed\b/i;
+
+function programAtCapacity(p) {
+  return [p.sessionDates, p.cost, p.description].some(
+    (field) => field && AT_CAPACITY.test(field)
+  );
+}
+
+// Nothing a parent can act on today: finished, or full.
+function programIsClosed(p) {
+  return programHasEnded(p) || programAtCapacity(p);
+}
 function programHasLanguage(p) {
   const staff =
     p.staffLanguageSupport && p.staffLanguageSupport.toLowerCase() !== "no";
@@ -267,11 +288,11 @@ function filteredList() {
       if (cats.size > 0 && !p.categories.some((c) => cats.has(c))) return false;
       return true;
     });
-    // Finished sessions sink to the bottom so a parent scanning the page hits
-    // everything still joinable first. Sort is stable, so the sheet's order
-    // survives inside each group.
+    // Finished and full listings sink to the bottom so a parent scanning the
+    // page hits everything still joinable first. Sort is stable, so the sheet's
+    // order survives inside each group.
     return matches.sort(
-      (a, b) => Number(programHasEnded(a)) - Number(programHasEnded(b))
+      (a, b) => Number(programIsClosed(a)) - Number(programIsClosed(b))
     );
   }
 
@@ -322,16 +343,19 @@ function tagRow(categories) {
 
 function programCardHTML(p) {
   const badges = [];
-  // A listing whose sessions are all over is stale on either program tab.
+  // Over or full: greyed either way, but the badge says which, since a parent
+  // can still ask a full program about a waitlist or next season.
   const ended = programHasEnded(p);
+  const closed = ended || programAtCapacity(p);
   if (ended) badges.push(badge("Session ended", "plain"));
+  else if (closed) badges.push(badge("Currently full", "plain"));
   if (programIsFree(p)) badges.push(badge("Free", "info"));
   else if (programHasAid(p)) badges.push(badge("Financial aid", "info"));
   if (p.busAccessible) badges.push(badge("Bus accessible", "plain"));
   if (programHasLanguage(p)) badges.push(badge("Language support", "plain"));
 
   return `
-    <article class="card${ended ? " card-past" : ""}">
+    <article class="card${closed ? " card-past" : ""}">
       <div class="card-top">
         <div style="min-width:0">
           <p class="card-org">${p.organizationName}</p>
