@@ -122,19 +122,6 @@ input, button, select { font-family: inherit; }
 .gs-list li { display: flex; gap: 10px; align-items: baseline; }
 .gs-num { font-family: "Montserrat", sans-serif; font-weight: 800; color: var(--green); }
 
-/* ---------------- Filter sheet ----------------
-   Above 760px there is no sheet: display:contents removes BOTH wrapper boxes
-   so .chip-row and .filter-row-toggles stay direct children of .filter-inner
-   and inherit its 14px column gap, exactly as before this existed. Leaving
-   .sheet-body a block costs that gap and shortens the bar. The head, foot and
-   backdrop only mean anything once the media query turns it into a real
-   sheet. */
-.filter-sheet,
-.sheet-body { display: contents; }
-.sheet-head,
-.sheet-foot,
-.sheet-backdrop { display: none; }
-
 /* ---------------- Filter bar ---------------- */
 .filter-bar {
   position: sticky;
@@ -187,9 +174,9 @@ input, button, select { font-family: inherit; }
 }
 .search-input:focus { border-color: var(--green); }
 
-/* Mobile-only "Filters" disclosure button (revealed in the mobile media query) */
+/* The one way into the refinements, at every width. */
 .filters-toggle {
-  display: none;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
   flex: none;
@@ -203,6 +190,7 @@ input, button, select { font-family: inherit; }
   border: 1.5px solid var(--border-2);
 }
 .filters-toggle.has-active { border-color: var(--green); color: var(--green); }
+.filters-toggle[aria-expanded="true"] { background: var(--green); color: #fff; border-color: var(--green); }
 .filters-count { font-weight: 700; }
 
 .age-group {
@@ -852,188 +840,186 @@ input:focus-visible {
   .seg-tab-tag { display: block; width: fit-content; margin: 4px auto 0; padding: 2px 6px; }
 }
 
-/* Below ~760px the refinements leave the sticky bar entirely and open as a
-   bottom sheet over the results. They used to expand inside the bar, which
-   pinned 659px of controls — essentially a whole phone screen — to the top and
-   kept them there while you scrolled. The sticky bar is now one row at every
-   moment, open or closed.
+/* ---------------- Filter sheet ----------------
+   Every width opens the refinements here rather than expanding them inside the
+   sticky bar. Expanding in place pinned 659px of controls to the top of a phone
+   — 96% of the usable screen — and held them there while you scrolled; on a
+   desktop it cost three rows of viewport before the first listing. The bar is
+   one row everywhere now, so the page leads with listings rather than controls.
 
    Search and age stay in the bar rather than moving into the sheet. Age is the
    filter parents need most, and the earlier feedback was that people missed
-   filters they could not see, so it goes on costing a second row. */
-@media (max-width: 760px) {
-  .filters-toggle { display: inline-flex; }
-  .filters-toggle[aria-expanded="true"] { background: var(--green); color: #fff; border-color: var(--green); }
+   filters they could not see.
 
+   The markup keeps the sheet outside .filter-bar: the bar carries both
+   z-index:20 and a backdrop-filter, and either one alone would make it the
+   containing block for a fixed-position child and trap the sheet inside it. */
+.filter-sheet {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  /* Capped and centred so it reads as a panel on a wide monitor rather than a
+     band stretched across one; narrower than this it is simply full-bleed. */
+  max-width: 620px;
+  margin: 0 auto;
+  max-height: 82vh;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 40px rgba(22, 48, 43, 0.22);
+  transform: translateY(101%);
+  visibility: hidden;
+  /* visibility flips at the END of the slide out (so the sheet is not
+     focusable once gone) but IMMEDIATELY on the way in — a duration here
+     instead of a delay leaves it computed-hidden for the whole animation,
+     and focus() on a hidden element silently does nothing. */
+  transition: transform 0.24s ease, visibility 0s linear 0.24s;
+}
+.filter-sheet.open {
+  transform: translateY(0);
+  visibility: visible;
+  transition: transform 0.24s ease, visibility 0s;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  flex: none;
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.sheet-grab {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-2);
+}
+
+.sheet-title {
+  margin: 0;
+  font-family: "Montserrat", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sheet-close {
+  border: none;
+  background: none;
+  font-size: 28px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  color: var(--faint);
+}
+
+.sheet-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sheet-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.sheet-clear {
+  flex: none;
+  background: none;
+  border: 1.5px solid var(--border-2);
+  border-radius: 12px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 16px;
+  cursor: pointer;
+}
+.sheet-clear:disabled { opacity: 0.45; cursor: default; }
+
+.sheet-apply {
+  flex: 1 1 auto;
+  background: var(--green);
+  border: 1.5px solid var(--green);
+  border-radius: 12px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 13px 16px;
+  cursor: pointer;
+}
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(18, 53, 31, 0.42);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0s linear 0.24s;
+}
+.sheet-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s ease, visibility 0s;
+}
+
+/* The sheet footer carries its own Clear all. */
+#clear-all { display: none; }
+
+/* Nothing behind the sheet should move while it is open. */
+body.sheet-lock { overflow: hidden; }
+
+/* Inside the sheet the refinements are one column of full-width rows at every
+   width — the sheet is never wide enough for the old inline arrangement. */
+.filter-row-toggles { flex-direction: column; align-items: stretch; }
+.toggle-row { width: 100%; }
+.toggle-pill { width: 100%; text-align: center; }
+
+/* Facets become a full-width accordion: an absolutely-positioned dropdown
+   would be clipped by the sheet body's own scrolling, so open them inline. */
+.facet-row { flex-direction: column; align-items: stretch; width: 100%; }
+.facet { width: 100%; }
+.facet-btn { width: 100%; justify-content: space-between; }
+.facet-menu {
+  position: static;
+  width: 100%;
+  max-width: none;
+  max-height: 260px;
+  margin-top: 6px;
+  box-shadow: none;
+  border-color: var(--border);
+}
+
+/* Phone trims to the bar itself. The sheet is identical at every size. */
+@media (max-width: 760px) {
   .search-wrap { flex: 1 1 180px; min-width: 0; }
   .filter-inner { padding-top: 12px; padding-bottom: 12px; gap: 12px; }
-
-  /* backdrop-filter makes an element the containing block for fixed-position
-     descendants, which would trap the sheet inside the bar. The blur earns
-     nothing at phone size, so drop it and make the bar opaque instead. */
-  .filter-bar {
-    background: #FAF7F2;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  .filter-sheet {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 60;
-    max-height: 82vh;
-    background: var(--surface);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -8px 40px rgba(22, 48, 43, 0.22);
-    transform: translateY(101%);
-    visibility: hidden;
-    /* visibility flips at the END of the slide out (so the sheet is not
-       focusable once gone) but IMMEDIATELY on the way in — a duration here
-       instead of a delay leaves it computed-hidden for the whole animation,
-       and focus() on a hidden element silently does nothing. */
-    transition: transform 0.24s ease, visibility 0s linear 0.24s;
-  }
-  .filter-sheet.open {
-    transform: translateY(0);
-    visibility: visible;
-    transition: transform 0.24s ease, visibility 0s;
-  }
-
-  .sheet-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: relative;
-    flex: none;
-    padding: 20px 20px 12px;
-    border-bottom: 1px solid var(--hairline);
-  }
-
-  .sheet-grab {
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 38px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--border-2);
-  }
-
-  .sheet-title {
-    margin: 0;
-    font-family: "Montserrat", sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .sheet-close {
-    border: none;
-    background: none;
-    font-size: 28px;
-    line-height: 1;
-    padding: 0 4px;
-    cursor: pointer;
-    color: var(--faint);
-  }
-
-  .sheet-body {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 16px 20px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .sheet-foot {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: none;
-    padding: 12px 20px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--hairline);
-    background: var(--surface);
-  }
-
-  .sheet-clear {
-    flex: none;
-    background: none;
-    border: 1.5px solid var(--border-2);
-    border-radius: 12px;
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 15px;
-    font-weight: 600;
-    padding: 13px 16px;
-    cursor: pointer;
-  }
-  .sheet-clear:disabled { opacity: 0.45; cursor: default; }
-
-  .sheet-apply {
-    flex: 1 1 auto;
-    background: var(--green);
-    border: 1.5px solid var(--green);
-    border-radius: 12px;
-    color: #fff;
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 700;
-    padding: 13px 16px;
-    cursor: pointer;
-  }
-
-  .sheet-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 55;
-    background: rgba(18, 53, 31, 0.42);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.24s ease, visibility 0s linear 0.24s;
-  }
-  .sheet-backdrop.open {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.24s ease, visibility 0s;
-  }
-
-  /* The sheet footer carries its own Clear all. */
-  #clear-all { display: none; }
-
-  /* Nothing behind the sheet should move while it is open. */
-  body.sheet-lock { overflow: hidden; }
 
   .age-group { width: 100%; flex-wrap: wrap; }
   .age-chips { flex: 1 1 auto; }
   .age-chip { flex: 1 1 auto; text-align: center; }
-
-  .filter-row-toggles { flex-direction: column; align-items: stretch; }
-  .toggle-row { width: 100%; }
-  .toggle-pill { width: 100%; text-align: center; }
-  .clear-all { margin-left: 0; align-self: flex-start; }
-
-  /* Facets become a full-width accordion: an absolutely-positioned dropdown
-     would be clipped by the sheet body's own scrolling, so open them inline. */
-  .facet-row { flex-direction: column; align-items: stretch; width: 100%; }
-  .facet { width: 100%; }
-  .facet-btn { width: 100%; justify-content: space-between; }
-  .facet-menu {
-    position: static;
-    width: 100%;
-    max-width: none;
-    max-height: 260px;
-    margin-top: 6px;
-    box-shadow: none;
-    border-color: var(--border);
-  }
 }

@@ -880,12 +880,11 @@ function wireFacetMenus() {
   });
 }
 
-// ---------- mobile filter sheet ----------
+// ---------- filter sheet ----------
 
-// Below 760px the refinements open as a sheet over the results instead of
-// expanding inside the sticky bar. Same elements in both layouts (CSS decides
-// which), so opening and closing is only ever a class, never a re-render.
-const MOBILE_SHEET = window.matchMedia("(max-width: 760px)");
+// The refinements open as a sheet over the results at every width; the bar
+// keeps only search, the Filters button and age. Opening and closing is just
+// a class, never a re-render, so nothing is lost on the way in or out.
 let sheetOpen = false;
 
 function openSheet() {
@@ -1097,8 +1096,7 @@ clearAllBtn.addEventListener("click", clearAll);
 archiveNoteBtn.addEventListener("click", () => setActiveTab("current"));
 emptyClearBtn.addEventListener("click", clearAll);
 
-// Mobile: open the filter sheet. (On wider screens the button is hidden by
-// CSS and every control is always visible in the bar.)
+// The Filters button is the only way into the refinements, at every width.
 filtersToggleBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   closeAllFacetMenus();
@@ -1116,21 +1114,6 @@ sheetClearBtn.addEventListener("click", clearAll);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && sheetOpen) closeSheet(true);
 });
-// Rotating to landscape or widening past the breakpoint puts every control
-// back in the bar; a sheet left open would sit there detached from anything.
-// Feature-detected because this runs during init: on a browser without the
-// modern MediaQueryList events an exception here would take down everything
-// below it, and a blank page is a far worse bug than a sheet that needs one
-// extra tap after rotating.
-if (MOBILE_SHEET.addEventListener) {
-  MOBILE_SHEET.addEventListener("change", (e) => {
-    if (!e.matches) closeSheet(false);
-  });
-} else if (MOBILE_SHEET.addListener) {
-  MOBILE_SHEET.addListener((e) => {
-    if (!e.matches) closeSheet(false);
-  });
-}
 // Close any open facet dropdown when clicking elsewhere (menu/button clicks
 // stopPropagation, so this only fires for outside clicks).
 document.addEventListener("click", closeAllFacetMenus);
