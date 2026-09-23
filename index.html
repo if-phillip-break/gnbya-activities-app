@@ -15,11 +15,7 @@
   <header class="site-header">
     <div class="container header-grid">
       <div class="header-left">
-        <img class="site-logo" src="assets/gnbya-logo.avif" alt="Greater New Bedford Youth Alliance">
-        <div>
-          <p class="eyebrow">Greater New Bedford Youth Alliance</p>
-          <h1 class="page-title">Find a camp or program for your child</h1>
-        </div>
+        <h1 class="page-title">Find a camp or program for your child</h1>
       </div>
 
       <aside class="getting-started">
@@ -35,6 +31,12 @@
 
   <!-- ============ Sticky filter bar ============ -->
   <div class="filter-bar">
+    <!-- Dimmer for the mobile filter sheet. It has to live inside .filter-bar:
+         the bar carries z-index:20, which makes it a stacking context, so a
+         backdrop outside it paints over the sheet no matter how high the
+         sheet's own z-index goes. In here the two stack against each other. -->
+    <div class="sheet-backdrop" id="sheet-backdrop"></div>
+
     <div class="container filter-inner">
       <div class="filter-row">
         <div class="search-wrap">
@@ -42,7 +44,7 @@
           <input type="search" id="search-input" class="search-input"
                  placeholder="Search camps, clubs, or organizations" aria-label="Search">
         </div>
-        <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false">
+        <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="filter-sheet">
           Filters<span class="filters-count" id="filters-count"></span><span class="facet-caret" aria-hidden="true">▾</span>
         </button>
         <div class="age-group">
@@ -51,16 +53,35 @@
         </div>
       </div>
 
-      <!-- Type of activity comes before the refinements: a parent picks what
-           they're looking for, then narrows it. -->
-      <div class="filter-row chip-row" id="category-chips" aria-label="Filter by type of activity" hidden></div>
+      <!-- Below 760px this becomes a bottom sheet over the results; above it,
+           display:contents dissolves the wrapper and these rows sit in the bar
+           exactly as they always have. Same elements either way, so nothing
+           is duplicated and every listener stays wired. -->
+      <div class="filter-sheet" id="filter-sheet">
+        <div class="sheet-head">
+          <span class="sheet-grab" aria-hidden="true"></span>
+          <p class="sheet-title">Filters</p>
+          <button type="button" class="sheet-close" id="sheet-close" aria-label="Close filters">&times;</button>
+        </div>
 
-      <div class="filter-row filter-row-toggles">
-        <div class="toggle-row" id="toggle-row" role="group" aria-label="Quick filters"></div>
-        <!-- Calendar picker; hidden on tabs whose listings have no dates. -->
-        <div class="facet-row date-filter" id="date-filter" role="group" aria-label="Filter by date" hidden></div>
-        <div class="facet-row" id="facet-menus" role="group" aria-label="More filters" hidden></div>
-        <button type="button" id="clear-all" class="clear-all" hidden>Clear all</button>
+        <div class="sheet-body">
+          <!-- Type of activity comes before the refinements: a parent picks what
+               they're looking for, then narrows it. -->
+          <div class="filter-row chip-row" id="category-chips" aria-label="Filter by type of activity" hidden></div>
+
+          <div class="filter-row filter-row-toggles">
+            <div class="toggle-row" id="toggle-row" role="group" aria-label="Quick filters"></div>
+            <!-- Calendar picker; hidden on tabs whose listings have no dates. -->
+            <div class="facet-row date-filter" id="date-filter" role="group" aria-label="Filter by date" hidden></div>
+            <div class="facet-row" id="facet-menus" role="group" aria-label="More filters" hidden></div>
+            <button type="button" id="clear-all" class="clear-all" hidden>Clear all</button>
+          </div>
+        </div>
+
+        <div class="sheet-foot">
+          <button type="button" class="sheet-clear" id="sheet-clear">Clear all</button>
+          <button type="button" class="sheet-apply" id="sheet-apply">Show <span id="sheet-count">results</span></button>
+        </div>
       </div>
     </div>
   </div>

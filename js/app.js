@@ -121,7 +121,12 @@ const categoryChipsEl = document.getElementById("category-chips");
 const facetMenusEl = document.getElementById("facet-menus");
 const filtersToggleBtn = document.getElementById("filters-toggle");
 const filtersCountEl = document.getElementById("filters-count");
-const filterBarEl = document.querySelector(".filter-bar");
+const filterSheetEl = document.getElementById("filter-sheet");
+const sheetBackdropEl = document.getElementById("sheet-backdrop");
+const sheetCloseBtn = document.getElementById("sheet-close");
+const sheetClearBtn = document.getElementById("sheet-clear");
+const sheetApplyBtn = document.getElementById("sheet-apply");
+const sheetCountEl = document.getElementById("sheet-count");
 const tabsEl = document.getElementById("tabs");
 const resultCountEl = document.getElementById("result-count");
 const cardGridEl = document.getElementById("card-grid");
@@ -875,6 +880,50 @@ function wireFacetMenus() {
   });
 }
 
+// ---------- mobile filter sheet ----------
+
+// Below 760px the refinements open as a sheet over the results instead of
+// expanding inside the sticky bar. Same elements in both layouts (CSS decides
+// which), so opening and closing is only ever a class, never a re-render.
+const MOBILE_SHEET = window.matchMedia("(max-width: 760px)");
+let sheetOpen = false;
+
+function openSheet() {
+  sheetOpen = true;
+  filterSheetEl.classList.add("open");
+  sheetBackdropEl.classList.add("open");
+  document.body.classList.add("sheet-lock");
+  filtersToggleBtn.setAttribute("aria-expanded", "true");
+  // Announced as a dialog only while it is one — on desktop the same element
+  // is display:contents and has no box to be a dialog.
+  filterSheetEl.setAttribute("role", "dialog");
+  filterSheetEl.setAttribute("aria-modal", "true");
+  filterSheetEl.setAttribute("aria-label", "Filters");
+  // A frame later: the sheet is still computed visibility:hidden on the tick
+  // the class lands, and focus() is a no-op on a hidden element.
+  requestAnimationFrame(() => sheetCloseBtn.focus());
+}
+
+function closeSheet(restoreFocus) {
+  if (!sheetOpen) return;
+  sheetOpen = false;
+  closeAllFacetMenus();
+  filterSheetEl.classList.remove("open");
+  sheetBackdropEl.classList.remove("open");
+  document.body.classList.remove("sheet-lock");
+  filtersToggleBtn.setAttribute("aria-expanded", "false");
+  filterSheetEl.removeAttribute("role");
+  filterSheetEl.removeAttribute("aria-modal");
+  filterSheetEl.removeAttribute("aria-label");
+  if (restoreFocus) filtersToggleBtn.focus();
+}
+
+// The apply button doubles as the result count, so a parent ticking filters
+// sees what they are about to get before dismissing the sheet.
+function setSheetCount(text) {
+  sheetCountEl.textContent = text;
+}
+
 // ---------- archive notice ----------
 
 // The "these already ran" claim lives here, on the tab, rather than on each
@@ -890,6 +939,7 @@ function renderArchiveNote() {
 
 function applyFilters() {
   clearAllBtn.hidden = !anyFilterActive();
+  sheetClearBtn.disabled = !anyFilterActive();
   const activeCount = activeFilterCount();
   filtersCountEl.textContent = activeCount ? ` (${activeCount})` : "";
   filtersToggleBtn.classList.toggle("has-active", activeCount > 0);
@@ -907,17 +957,21 @@ function applyFilters() {
     cardGridEl.innerHTML = `<p class="loading">${loadError[ds]}</p>`;
     emptyStateEl.hidden = true;
     resultCountEl.textContent = "";
+    setSheetCount("results");
     return;
   }
   if (!dataReady[ds]) {
     cardGridEl.innerHTML = `<p class="loading">Loading…</p>`;
     emptyStateEl.hidden = true;
     resultCountEl.textContent = "";
+    setSheetCount("results");
     return;
   }
 
   const list = filteredList();
-  resultCountEl.textContent = `${list.length} ${list.length === 1 ? def.noun : def.nounPlural}`;
+  const countText = `${list.length} ${list.length === 1 ? def.noun : def.nounPlural}`;
+  resultCountEl.textContent = countText;
+  setSheetCount(countText);
 
   if (list.length === 0) {
     cardGridEl.innerHTML = "";
@@ -1043,17 +1097,46 @@ clearAllBtn.addEventListener("click", clearAll);
 archiveNoteBtn.addEventListener("click", () => setActiveTab("current"));
 emptyClearBtn.addEventListener("click", clearAll);
 
-// Mobile: expand/collapse the filter panel. (On wider screens the button is
-// hidden by CSS and every control is always visible.)
+// Mobile: open the filter sheet. (On wider screens the button is hidden by
+// CSS and every control is always visible in the bar.)
 filtersToggleBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   closeAllFacetMenus();
-  const open = filterBarEl.classList.toggle("filters-open");
-  filtersToggleBtn.setAttribute("aria-expanded", String(open));
+  if (sheetOpen) closeSheet(false);
+  else openSheet();
 });
+
+// Four ways out, because a sheet that is hard to dismiss is worse than the
+// panel it replaced: the X, the dimmer, Escape, and the apply button (which
+// only closes — filtering already happened as each control was touched).
+sheetCloseBtn.addEventListener("click", () => closeSheet(true));
+sheetApplyBtn.addEventListener("click", () => closeSheet(true));
+sheetBackdropEl.addEventListener("click", () => closeSheet(false));
+sheetClearBtn.addEventListener("click", clearAll);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && sheetOpen) closeSheet(true);
+});
+// Rotating to landscape or widening past the breakpoint puts every control
+// back in the bar; a sheet left open would sit there detached from anything.
+// Feature-detected because this runs during init: on a browser without the
+// modern MediaQueryList events an exception here would take down everything
+// below it, and a blank page is a far worse bug than a sheet that needs one
+// extra tap after rotating.
+if (MOBILE_SHEET.addEventListener) {
+  MOBILE_SHEET.addEventListener("change", (e) => {
+    if (!e.matches) closeSheet(false);
+  });
+} else if (MOBILE_SHEET.addListener) {
+  MOBILE_SHEET.addListener((e) => {
+    if (!e.matches) closeSheet(false);
+  });
+}
 // Close any open facet dropdown when clicking elsewhere (menu/button clicks
 // stopPropagation, so this only fires for outside clicks).
 document.addEventListener("click", closeAllFacetMenus);
+// A tap inside the sheet is not an outside click. Without this the document
+// listener above would collapse an accordion the moment it was opened.
+filterSheetEl.addEventListener("click", (e) => e.stopPropagation());
 
 // The suggest-a-program link only appears once a form URL is configured.
 const suggestLinkEl = document.getElementById("suggest-link");
