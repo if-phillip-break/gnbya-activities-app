@@ -120,6 +120,28 @@ The answer only reaches the site if `Activity Type` is in the Live listings
 header row *and* inside its FILTER range — see "Adding a column without breaking
 the site" in `planned-fields.md`.
 
+### The Summer tab turns into an archive out of season
+
+From **September through February** the Summer Activities tab labels itself
+**Past**, carries a notice saying the programs have already run, greys its
+cards, and changes each card's button from *Sign up* to *Visit website*. From
+**March through August** it goes back to normal on its own — there is nothing
+to switch on or off, and no listing is hidden either way.
+
+This is why summer listings can safely stay published year-round: a parent
+browsing in October can still see what an organization usually offers and ask
+about next year, without being told to sign up for something that finished in
+August.
+
+Two things worth knowing:
+
+- Individual cards still only say **Session ended** when their own Session
+  Dates prove it. A summer listing that genuinely runs past August ("May -
+  December") is greyed with the season's name but never called finished.
+- Come March the tab goes live again with whatever is in the sheet, which will
+  still be *last* summer's listings until organizations resubmit. Plan the
+  spring refresh around that.
+
 ## How you write Session Dates matters
 
 Parents can now pick days on a calendar, and the site works out which listings

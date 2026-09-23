@@ -72,6 +72,17 @@
       <div class="result-count" id="result-count" aria-live="polite"></div>
     </div>
 
+    <!-- Shown only on the Summer tab out of season. Summer listings stay
+         published year-round so families can see what a summer normally
+         offers, so the tab says plainly that these have already run. -->
+    <div class="archive-note" id="archive-note" hidden>
+      <div class="archive-note-body">
+        <p class="archive-note-label"><span id="archive-season">Summer</span> · finished</p>
+        <p class="archive-note-text">These programs have already run. They stay here so you can see what each organization usually offers and ask about next summer — most open registration in the spring.</p>
+      </div>
+      <button type="button" class="archive-note-link" id="archive-note-link">See what&rsquo;s running now &rarr;</button>
+    </div>
+
     <div class="card-grid" id="card-grid">
       <p class="loading">Loading…</p>
     </div>

@@ -25,6 +25,33 @@ const PROGRAM_TOGGLES = [
   { key: "lang", label: "Language support" },
 ];
 
+// Summer listings are only actionable for part of the year: partners publish
+// them in the spring and the last sessions finish in late August. Out of season
+// the tab becomes an archive rather than disappearing — parents still use it to
+// see what a summer here normally looks like, and to ask an organization about
+// next year. Season runs March through August; the rest is archive.
+const SUMMER_SEASON_FIRST_MONTH = 2; // March
+const SUMMER_SEASON_LAST_MONTH = 7; // August
+
+function summerIsArchived(date) {
+  const m = date.getMonth();
+  return m < SUMMER_SEASON_FIRST_MONTH || m > SUMMER_SEASON_LAST_MONTH;
+}
+
+// Which summer the archived listings ran: September onward points at the year
+// just gone, January and February at the one before it.
+function archivedSeasonYear(date) {
+  return date.getMonth() >= SUMMER_SEASON_FIRST_MONTH
+    ? date.getFullYear()
+    : date.getFullYear() - 1;
+}
+
+// Read once at load. A parent does not leave the page open across a season
+// boundary, and recomputing per render would only invite the two halves of the
+// UI to disagree mid-session.
+const SUMMER_ARCHIVED = summerIsArchived(new Date());
+const ARCHIVED_SEASON_YEAR = archivedSeasonYear(new Date());
+
 // Three tabs over two datasets. "summer" and "current" are two views of the
 // same programs feed, split by the intake form's Activity Type answer; "year"
 // is the organizations directory. `noun` labels the result count.
@@ -35,7 +62,7 @@ const PROGRAM_TOGGLES = [
 const TABS = [
   { key: "current", label: "Current Activities", dataset: "programs", noun: "activity", nounPlural: "activities" },
   { key: "year", label: "GNBYA Organizations", dataset: "orgs", noun: "organization", nounPlural: "organizations" },
-  { key: "summer", label: "Summer Activities", dataset: "programs", noun: "activity", nounPlural: "activities" },
+  { key: "summer", label: "Summer Activities", tag: SUMMER_ARCHIVED ? "Past" : null, dataset: "programs", noun: "activity", nounPlural: "activities" },
 ];
 
 function tabDef(key) {
@@ -103,6 +130,9 @@ const emptyClearBtn = document.getElementById("empty-clear");
 const emptyTitleEl = emptyStateEl.querySelector(".empty-title");
 const emptyHelpEl = emptyStateEl.querySelector(".empty-help");
 const dateFilterEl = document.getElementById("date-filter");
+const archiveNoteEl = document.getElementById("archive-note");
+const archiveSeasonEl = document.getElementById("archive-season");
+const archiveNoteBtn = document.getElementById("archive-note-link");
 
 // ---------- state ----------
 
@@ -185,6 +215,15 @@ function programAtCapacity(p) {
   return [p.sessionDates, p.cost, p.description].some(
     (field) => field && AT_CAPACITY.test(field)
   );
+}
+
+// Out-of-season summer listings. Deliberately a season check and nothing
+// more: the sheet holds summer rows that genuinely run past August ("May -
+// December"), so this greys and re-labels the card but never claims a
+// session is over — programHasEnded() stays the only thing allowed to say
+// that.
+function programIsArchived(p) {
+  return SUMMER_ARCHIVED && p.isSummerCamp;
 }
 
 // Nothing a parent can act on today: finished, or full.
@@ -343,12 +382,17 @@ function tagRow(categories) {
 
 function programCardHTML(p) {
   const badges = [];
-  // Over or full: greyed either way, but the badge says which, since a parent
-  // can still ask a full program about a waitlist or next season.
+  // Over, full, or out of season: greyed in all three cases, but the badge
+  // says which, since a parent can still ask a full program about a waitlist
+  // or next season. The archive badge names the season rather than claiming
+  // the listing is finished — only programHasEnded() knows that.
   const ended = programHasEnded(p);
-  const closed = ended || programAtCapacity(p);
+  const atCapacity = programAtCapacity(p);
+  const archived = programIsArchived(p);
+  const closed = ended || atCapacity || archived;
   if (ended) badges.push(badge("Session ended", "plain"));
-  else if (closed) badges.push(badge("Currently full", "plain"));
+  else if (atCapacity) badges.push(badge("Currently full", "plain"));
+  else if (archived) badges.push(badge("Summer " + ARCHIVED_SEASON_YEAR, "plain"));
   if (programIsFree(p)) badges.push(badge("Free", "info"));
   else if (programHasAid(p)) badges.push(badge("Financial aid", "info"));
   if (p.busAccessible) badges.push(badge("Bus accessible", "plain"));
@@ -377,7 +421,7 @@ function programCardHTML(p) {
 
       <div class="card-footer">
         <div class="card-contact">${p.contact || ""}</div>
-        ${p.website ? `<a class="card-action" href="${p.website}" target="_blank" rel="noopener">Sign up →</a>` : ""}
+        ${p.website ? `<a class="card-action" href="${p.website}" target="_blank" rel="noopener">${archived ? "Visit website" : "Sign up"} →</a>` : ""}
       </div>
     </article>`;
 }
@@ -431,7 +475,7 @@ function organizationCardHTML(o) {
 function renderTabs() {
   tabsEl.innerHTML = TABS.map(
     (t) =>
-      `<button type="button" role="tab" class="seg-tab ${t.key === activeTab ? "active" : ""}" data-tab="${t.key}" aria-selected="${t.key === activeTab}">${t.label}</button>`
+      `<button type="button" role="tab" class="seg-tab ${t.key === activeTab ? "active" : ""}" data-tab="${t.key}" aria-selected="${t.key === activeTab}">${t.label}${t.tag ? `<span class="seg-tab-tag">${t.tag}</span>` : ""}</button>`
   ).join("");
   tabsEl.querySelectorAll(".seg-tab").forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
@@ -831,6 +875,17 @@ function wireFacetMenus() {
   });
 }
 
+// ---------- archive notice ----------
+
+// The "these already ran" claim lives here, on the tab, rather than on each
+// card — it is the one place we can say it and be right about every listing
+// underneath.
+function renderArchiveNote() {
+  const show = activeTab === "summer" && SUMMER_ARCHIVED;
+  archiveNoteEl.hidden = !show;
+  if (show) archiveSeasonEl.textContent = "Summer " + ARCHIVED_SEASON_YEAR;
+}
+
 // ---------- main render ----------
 
 function applyFilters() {
@@ -841,6 +896,9 @@ function applyFilters() {
   // Redrawn every pass so the button label and the highlighted days follow the
   // selection; wireDateFilter() puts the popover back if it was open.
   renderDateFilter();
+  // Ahead of the loading/error/empty returns below: the notice explains the
+  // tab itself, so it belongs on screen even when no cards sit under it.
+  renderArchiveNote();
 
   const def = tabDef(activeTab);
   const ds = def.dataset;
@@ -885,7 +943,10 @@ function showEmptyState(def) {
     return;
   }
   emptyTitleEl.textContent = "No matches for those filters";
-  emptyHelpEl.textContent = "Try widening the age range or clearing a filter.";
+  emptyHelpEl.textContent =
+    activeTab === "summer" && SUMMER_ARCHIVED
+      ? "Nothing in the summer archive matches those filters. Try clearing one."
+      : "Try widening the age range or clearing a filter.";
   emptyClearBtn.hidden = false;
 }
 
@@ -979,6 +1040,7 @@ searchInput.addEventListener("input", () => {
   applyFilters();
 });
 clearAllBtn.addEventListener("click", clearAll);
+archiveNoteBtn.addEventListener("click", () => setActiveTab("current"));
 emptyClearBtn.addEventListener("click", clearAll);
 
 // Mobile: expand/collapse the filter panel. (On wider screens the button is
