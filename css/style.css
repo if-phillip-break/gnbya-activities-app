@@ -566,6 +566,10 @@ input, button, select { font-family: inherit; }
   box-shadow: 0 1px 2px rgba(22, 48, 43, 0.04);
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
   overflow-wrap: break-word;
+  /* So .fact-grid can size itself against the card instead of the window. A
+     card is ~300px wide in a 3-up desktop layout and ~290px on a phone, so the
+     window width never told us what we actually needed to know. */
+  container-type: inline-size;
 }
 .card:hover {
   box-shadow: 0 8px 24px rgba(22, 48, 43, 0.10);
@@ -620,6 +624,14 @@ input, button, select { font-family: inherit; }
   overflow: hidden;
 }
 
+/* Deliberately left on the default min-width:auto. Forcing min-width:0 here
+   pins both tracks to exactly half the grid and they stop being able to
+   negotiate: Learn to Ride's "$80/week, scholarships available" loses the
+   8px it needs and breaks mid-word as "scholarship|s". Letting one track
+   take the width its longest word needs, and the other give it up, reads
+   better on every real listing -- and when neither can be satisfied the
+   container query further down drops the grid to a single column, so
+   nothing has to be clipped to make room. */
 .fact-cell { background: var(--subtle-2); padding: 11px 13px; }
 
 .fact-label {
@@ -830,14 +842,28 @@ input:focus-visible {
   .archive-note { padding: 14px 16px; }
   .archive-note-link { width: 100%; }
   .segmented { width: 100%; }
-  /* min-width:0 lets a tab shrink below its text and wrap. Without it the
-     three labels plus the Past pill add up to 408px inside a 335px strip and
-     push the whole page into a sideways scroll. */
-  .seg-tab { flex: 1; min-width: 0; padding: 10px 12px; }
+  /* Two tabs per row, not three. "Organizations" is 101px of unbreakable word
+     and a third of a 335px strip leaves it 80px, so the label spilled out over
+     its own tab and its neighbour; a third of a 320px strip leaves 57px, and no
+     readable font size fits it. Half-width tabs give it 140px and the odd one
+     out grows to fill the second row. min-width:0 lets a tab shrink below its
+     text at all, without which the strip pushes the page sideways. */
+  .segmented { flex-wrap: wrap; }
+  .seg-tab { flex: 1 1 calc(50% - 9px); min-width: 0; padding: 10px 12px; }
   /* Its own line inside the tab. Beside the label it is an inline box that
      cannot wrap, so at 320px it hung past the viewport and took the page with
      it. Stacked, it is always inside the tab it belongs to. */
   .seg-tab-tag { display: block; width: fit-content; margin: 4px auto 0; padding: 2px 6px; }
+}
+
+/* One fact per row once the card is too narrow for two. Half of a ~300px card
+   is ~130px -- narrower than single values the sheet really contains ("$125
+   resident/$150 nonresident", "Scholarships available"). Two columns pushed
+   those past the grid, where overflow:hidden cut up to 35px off them with
+   nothing on screen to show it had. Full width fits them, and the dates cell
+   stops being a one-word-per-line ribbon. */
+@container (max-width: 312px) {
+  .fact-grid { grid-template-columns: 1fr; }
 }
 
 /* ---------------- Filter sheet ----------------
