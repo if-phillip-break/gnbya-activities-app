@@ -687,7 +687,8 @@ input, button, select { font-family: inherit; }
   color: var(--text-2);
 }
 
-/* Collapsible description (org cards): clamp to a short preview, expand on click */
+/* Collapsible description (organization and Current Activities cards): clamp to
+   a short preview, expand on click */
 .desc-block { display: flex; flex-direction: column; gap: 4px; }
 
 .card-desc.clampable {

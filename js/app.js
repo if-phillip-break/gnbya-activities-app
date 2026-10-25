@@ -385,6 +385,16 @@ function tagRow(categories) {
     .join("")}</div>`;
 }
 
+// A long description makes a card tall enough to push the next listing off the
+// screen, so the text clamps to a two-line preview and opens on click. Only
+// descriptions that actually overflow get the toggle — wireDescriptionClamps()
+// measures each one after it is in the DOM.
+function descriptionHTML(text, collapsible) {
+  if (!text) return "";
+  if (!collapsible) return `<p class="card-desc">${text}</p>`;
+  return `<div class="desc-block"><p class="card-desc clampable">${text}</p><button type="button" class="see-more-btn" aria-expanded="false" hidden>See more</button></div>`;
+}
+
 function programCardHTML(p) {
   const badges = [];
   // Over, full, or out of season: greyed in all three cases, but the badge
@@ -421,7 +431,7 @@ function programCardHTML(p) {
 
       ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
       ${tagRow(p.categories)}
-      ${p.description ? `<p class="card-desc">${p.description}</p>` : ""}
+      ${descriptionHTML(p.description, activeTab === "current")}
       ${p.address ? `<div class="card-address"><span class="address-marker" aria-hidden="true">◆</span><span>${p.address}</span></div>` : ""}
 
       <div class="card-footer">
@@ -465,7 +475,7 @@ function organizationCardHTML(o) {
 
       ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
       ${tagRow(o.categories)}
-      ${o.description ? `<div class="desc-block"><p class="card-desc clampable">${o.description}</p><button type="button" class="see-more-btn" hidden>See more</button></div>` : ""}
+      ${descriptionHTML(o.description, true)}
       ${o.location ? `<div class="card-address"><span class="address-marker" aria-hidden="true">◆</span><span>${o.location}</span></div>` : ""}
 
       <div class="card-footer">
@@ -1018,6 +1028,7 @@ function wireDescriptionClamps() {
     btn.addEventListener("click", () => {
       const expanded = desc.classList.toggle("expanded");
       btn.textContent = expanded ? "See less" : "See more";
+      btn.setAttribute("aria-expanded", String(expanded));
     });
   });
 }
