@@ -330,6 +330,12 @@ function mapRecordToProgram(record) {
   // The form dropped its free-text "Cost" question in favour of a required
   // enrolment figure plus two Yes/No flags. Either may be what's published.
   const cost = pick(record, "Cost", "Program Enrollment Cost");
+  // Third generation of the transport question: "Bus Accessible?" became
+  // "Transportation Accessible?", which became a checkbox list. Older rows
+  // still carry a Yes/No, so a legacy yes keeps counting as bus access.
+  const transport = pick(
+    record, "How can kids get to this program?", "Transportation Accessible?", "Bus Accessible?"
+  );
   return {
     id: slugify(`${record["Organization Name"]}-${record["Program Name"]}`),
     organizationName: record["Organization Name"],
@@ -360,7 +366,14 @@ function mapRecordToProgram(record) {
     isFree: toFreeFlag(record, cost),
     scholarships: toScholarshipFlag(record, cost),
     address: toNullableString(record["Address"]),
-    busAccessible: toBool(pick(record, "Transportation Accessible?", "Bus Accessible?")),
+    // Matched on the key phrase, not the whole option label: the form's wording
+    // has already shifted once ("We pick kids up" → "The organization picks
+    // kids up", "an SRTA" → "a SRTA") and an exact match went silently false.
+    busAccessible: /near an? srta bus route/i.test(transport) || toBool(transport),
+    schoolPickup: /picks? kids up from school/i.test(transport),
+    // Staff-set. Only this exact answer means anything; blank or "Active" is a
+    // normal listing.
+    notRunning: /^not running this season$/i.test((record["Listing status"] || "").trim()),
     nearestBusRoute: toNullableString(record["Nearest Bus Route/Stop"]),
     staffLanguageSupport: toNullableString(
       pick(record, "Translation Available?", "Staff Language Support")

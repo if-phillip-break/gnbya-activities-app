@@ -231,9 +231,9 @@ function programIsArchived(p) {
   return SUMMER_ARCHIVED && p.isSummerCamp;
 }
 
-// Nothing a parent can act on today: finished, or full.
+// Nothing a parent can act on today: finished, full, or not running.
 function programIsClosed(p) {
-  return programHasEnded(p) || programAtCapacity(p);
+  return p.notRunning || programHasEnded(p) || programAtCapacity(p);
 }
 function programHasLanguage(p) {
   const staff =
@@ -397,20 +397,25 @@ function descriptionHTML(text, collapsible) {
 
 function programCardHTML(p) {
   const badges = [];
-  // Over, full, or out of season: greyed in all three cases, but the badge
-  // says which, since a parent can still ask a full program about a waitlist
-  // or next season. The archive badge names the season rather than claiming
-  // the listing is finished — only programHasEnded() knows that.
+  // Not running, over, full, or out of season: greyed in every case, but the
+  // badge says which, since a parent can still ask a full program about a
+  // waitlist or next season. "Not running" is staff's own call, so it outranks
+  // what we infer from dates and free text. The archive badge names the season
+  // rather than claiming the listing is finished — only programHasEnded() knows
+  // that.
+  const notRunning = !!p.notRunning;
   const ended = programHasEnded(p);
   const atCapacity = programAtCapacity(p);
   const archived = programIsArchived(p);
-  const closed = ended || atCapacity || archived;
-  if (ended) badges.push(badge("Session ended", "plain"));
+  const closed = notRunning || ended || atCapacity || archived;
+  if (notRunning) badges.push(badge("Not running this season", "plain"));
+  else if (ended) badges.push(badge("Session ended", "plain"));
   else if (atCapacity) badges.push(badge("Currently full", "plain"));
   else if (archived) badges.push(badge("Summer " + ARCHIVED_SEASON_YEAR, "plain"));
   if (programIsFree(p)) badges.push(badge("Free", "info"));
   else if (programHasAid(p)) badges.push(badge("Financial aid", "info"));
   if (p.busAccessible) badges.push(badge("Bus accessible", "plain"));
+  if (p.schoolPickup) badges.push(badge("School pickup", "plain"));
   if (programHasLanguage(p)) badges.push(badge("Language support", "plain"));
 
   return `
