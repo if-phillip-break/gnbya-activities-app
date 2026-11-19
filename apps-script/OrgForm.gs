@@ -160,7 +160,9 @@ function backfillOrgs() {
   });
 
   const links = orgWriteEditLinks_(tab, form, items);
-  items["Listing manager email"].setRequired(true);
+  // getItems() hands back generic Items, which have no setRequired(); only the
+  // typed item does.
+  items["Listing manager email"].asTextItem().setRequired(true);
 
   Logger.log("Submitted " + submitted + ", skipped " + skipped + " already in the form. " +
     "Wrote " + links.written + " edit link(s)." +
@@ -249,7 +251,11 @@ function orgFindLinkedTab_(ss, form) {
     'Find the newest "Form Responses" tab and rename it "' + ORG_TAB_NAME + '" by hand before sharing the form.');
 }
 
-/** The form's items by title, after checking every question this file expects is there. */
+/**
+ * The form's items by title, after checking every question this file expects
+ * is there. These are generic Items: anything beyond getId()/getTitle() needs
+ * the typed item first, e.g. asTextItem().setRequired().
+ */
 function orgItemsByTitle_(form) {
   const byTitle = {};
   form.getItems().forEach((item) => (byTitle[item.getTitle()] = item));
