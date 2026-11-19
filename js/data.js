@@ -15,11 +15,15 @@ const PROGRAMS_CSV_URL =
 // URL to reveal the link in the footer; left null, the link stays hidden.
 const SUGGEST_FORM_URL = null;
 
-// Organizations placeholder sheet:
-// https://docs.google.com/spreadsheets/d/17GgTCCFufEu5ubDUKBWE-vdZjBNQA4TUHHdCsKF5cUg
-// Until its link-sharing is enabled, we read the same data from a local copy.
-// TODO: swap to the sheet's /export?format=csv URL once sharing is on.
-const ORGS_CSV_URL = "data/organizations_placeholder_sheet.csv";
+// Organizations come from the "Live organizations" tab of the same
+// spreadsheet: a FILTER view of the Organizations form's responses that
+// publishes only rows staff ticked Show on site, minus any marked "Remove from
+// site", sorted by name. Fed by apps-script/OrgForm.gs.
+//
+// data/organizations_placeholder_sheet.csv is no longer read by the site, but
+// keep it: OrgForm.gs builds the form and the backfill from it.
+const ORGS_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOv1GOvvxbbs45Zhnr7fLXKojgM6IvwChxO7omeJbnfWw1ziupuekM_x6jaSiTXgWJa35LbXUL17ww/pub?gid=1960834970&single=true&output=csv";
 
 async function fetchRecords(url) {
   const response = await fetch(url);
@@ -45,10 +49,13 @@ function toNumberOrNull(value) {
   return value === "" || value === undefined ? null : Number(value);
 }
 
-// Multi-value spreadsheet cells use "; " between values (e.g. "Free; Fee").
+// The organization fields that hold several values in one cell. Typed by hand
+// they use "; " ("Free; Fee"); Google Forms joins checkbox answers with ", "
+// ("Free, Fee"). Accept either. This is only safe because no option on the
+// Organizations form contains a comma, so never add one that does.
 function toList(value) {
   if (!value) return [];
-  return value.split(";").map((s) => s.trim()).filter(Boolean);
+  return value.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
 }
 
 // Categorization may arrive semicolon-separated (typed by hand) or comma-separated

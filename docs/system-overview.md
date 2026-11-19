@@ -4,10 +4,9 @@ A complete description of what this tool is, what data it holds, and exactly how
 it behaves. Written to be handed to someone (or some agent) with no prior context
 who needs to reason about new features.
 
-Accurate as of 2026-11-18 on the `forms-v2` branch, up to and including the
-commit that set the Apps Script up for the production sheet (not yet
-merged to `master` or deployed). Section 11's data was read from the production
-feed on that date.
+Accurate as of 2026-11-19 on `master`, up to and including the commit that
+moved the Organizations tab onto its published sheet feed. Section 11's data
+was read from the production feed on 2026-11-18.
 
 ---
 
@@ -58,7 +57,13 @@ js/data.js              Source URLs, CSV record -> app object mapping, category
 js/app.js               State, filtering, rendering, all UI behavior
 apps-script/Code.gs     Google Apps Script that runs inside the intake spreadsheet
                         (edit links, emails). The site never loads it; see §4
-data/                   Reference copies of both datasets + raw source CSV
+apps-script/OrgForm.gs  Apps Script that built the Organizations form and backfilled
+                        it; same project as Code.gs. See §4
+apps-script/tests/      Mock-service tests for the Apps Scripts:
+                        node apps-script/tests/OrgForm.test.js
+data/                   Reference copies of both datasets + raw source CSV. The
+                        site no longer reads them, but OrgForm.gs builds from
+                        data/organizations_placeholder_sheet.csv, so keep it
 docs/field-guide.md     Staff-facing column reference (what to type in the sheet)
 docs/form-intake-setup.md     How Form -> Sheet -> approval -> site is wired
 docs/planned-fields.md  Spec for filters parents asked for that need new columns
@@ -203,12 +208,49 @@ told, but they are not asked.
 
 ### Organizations
 
-Currently read from a **local file** (`data/organizations_placeholder_sheet.csv`),
-not a live sheet, because link sharing on the source spreadsheet has not been
-enabled. The code is otherwise identical in shape; swapping it to a live URL is a
-one-constant change in `js/data.js`. Original data came from GNBYA's own
-resource-guide database (43 published organizations); the full printed guide has
-about 60, so staff can add the rest as rows.
+Same shape as programs, in the same production spreadsheet:
+
+```
+Organization fills the "GNBYA Organizations" Google Form
+   -> "Organizations" tab (raw responses; never read by the site)
+   -> staff tick "Show on site"
+   -> "Live organizations" tab: FILTER of ticked rows, minus any whose
+      Organization status is "Remove from site", sorted by name
+   -> only that tab is published to the web as CSV (gid=1960834970)
+   -> fetched by js/data.js on page load
+```
+
+The form was built by `apps-script/OrgForm.gs` from
+`data/organizations_placeholder_sheet.csv`, originally GNBYA's own resource-guide
+database (43 published organizations; the printed guide has about 60). Its 16
+data questions use that CSV's headers word for word, so the published tab's
+columns are the ones the site already read. The eight multi-value fields are
+checkbox questions; Description, Location and Schedule are free text. Two extra
+questions stay private: `Listing manager email` (required) and
+`Organization status` (Active / Remove from site). Response editing is on.
+`backfillOrgs()` submitted one response per organization, so all 43 have a real
+edit link in the tab's `Edit link` column; nobody was emailed, because the CSV
+had no addresses.
+
+**An organization can take itself off the site** by choosing "Remove from
+site" through its edit link. It drops out of the published tab at once, with no
+staff step.
+
+**Publishing only the Live organizations tab matters.** The Organizations tab
+holds manager emails and edit links, and anyone with an edit link can rewrite
+that organization's entry. The published feed was checked on 2026-11-19: 43
+organizations, alphabetical, exactly the 16 public columns, no email or edit
+link columns.
+
+The FILTER-range gotcha above applies here too: after any change to the
+Organizations form, re-check that the FILTER still covers the 16 public columns
+and still points at `Show on site` and `Organization status`.
+
+**Not handled yet (follow-up C):** `Code.gs` deliberately ignores the
+Organizations tab, so a new or edited organization response gets no edit link
+written, no thank-you, and no staff notice; with an approval gate in front of
+the site, nobody is told a new organization is waiting. The "Get my listing
+links" lookup searches program listings only. See §12.
 
 ### Loading behavior
 
@@ -284,8 +326,10 @@ development + early education services combined), `programYear[]`,
 `programModel[]`, `cost[]`, `registration[]`, `transportation[]`, `location`,
 `schoolsServed`, `schedule`, `description`.
 
-Multi-value cells use `;` as the separator. Categorization accepts `;` or `,`
-(Google Forms joins checkbox answers with commas).
+Multi-value cells are split on `;` (how they were typed by hand) **or** `,`
+(how Google Forms joins checkbox answers). That is only safe because no option on
+the Organizations form contains a comma: **never add an option that does**, or
+it will be split in two. Programs' Categorization is split the same way.
 
 ---
 
@@ -602,8 +646,14 @@ candidates.
    free text written for humans.
 12. **No sort control.** Closed listings sink; nothing else is ordered. Sorting by
    start date needs real date columns.
-13. **Organizations are a local file**, so that tab does not update without a
-   deploy until sheet sharing is enabled.
+13. **New organization submissions go unnoticed.** `Code.gs` ignores the
+   Organizations tab, so a new or edited response gets no edit link, no
+   thank-you and no staff email, and the "Get my listing links" lookup cannot
+   find organization links. With `Show on site` in front of the site, a new
+   organization waits for approval that nobody knows to give. Planned as
+   follow-up C: route the tab in `Code.gs` like listings (treating a blank
+   email as a backfill row, so the 43 backfilled responses stay quiet) and
+   extend the lookup to search it by header.
 14. **No deep links.** Filter state and the active tab live only in memory — there
    is no URL state, so a parent cannot share "free programs for a 9-year-old".
 15. **No analytics.** Nothing records what parents search for or filter by, so
@@ -612,7 +662,8 @@ candidates.
     the grid, so an opened description closes. Acceptable today; worth knowing.
 17. **`gnbyaMember` and `nearestBusRoute` are parsed but never displayed.**
 18. **The FILTER-range gotcha** in §4 is the single most likely way for this site
-    to break silently.
+    to break silently, and it now applies to two tabs: Live listings and Live
+    organizations.
 
 ---
 
