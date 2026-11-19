@@ -116,7 +116,7 @@ To change a label or add a category, ask the developer to update
 - **Summer camp?** and **Season** — earlier versions of this switch. Still read
   if a row has them, but Activity Type wins. Nothing new needs them.
 
-The answer only reaches the site if `Activity Type` is in the Live listings
+The answer only reaches the site if `Activity Type` is in the Live Activities
 header row *and* inside its FILTER range — see "Adding a column without breaking
 the site" in `planned-fields.md`.
 

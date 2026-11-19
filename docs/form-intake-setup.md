@@ -53,13 +53,14 @@ Keep the questions in this order — it makes the formula in step 4 predictable.
 
 ### 2. Link the Form to the spreadsheet
 
-In the Form: **Responses → Link to Sheets**. This creates a **"Form Responses 1"**
-tab; every submission appends a row. Columns land as: A = Timestamp,
+In the Form: **Responses → Link to Sheets**. This creates a tab named **"Form Responses 1"**;
+rename it **"Activities"**, the name the scripts and formulas below expect.
+Every submission appends a row. Columns land as: A = Timestamp,
 B = Organization name, C = Program name, … R = Contact.
 
 ### 3. Add the approval checkbox
 
-In "Form Responses 1", click the header of the **first empty column to the right
+In "Activities", click the header of the **first empty column to the right
 (column S)** and title it **Show on site**. Select the whole column S →
 Insert → Tick box. Leave it unchecked by default.
 
@@ -67,9 +68,9 @@ Insert → Tick box. Leave it unchecked by default.
   checkboxes from their rows.
 - A submission appears on the site only once someone ticks its box.
 
-### 4. Create the "Live listings" tab
+### 4. Create the "Live Activities" tab
 
-Add a new tab named **Live listings**.
+Add a new tab named **Live Activities**.
 
 - In **row 1**, type these headers across columns A–Q, in this exact order:
   Organization name · Program name · Categorization · Description · Website ·
@@ -79,7 +80,7 @@ Add a new tab named **Live listings**.
 - In **cell A2**, paste:
 
   ```
-  =IFERROR(FILTER('Form Responses 1'!B2:R, 'Form Responses 1'!S2:S=TRUE), )
+  =IFERROR(FILTER(Activities!B2:R, Activities!S2:S=TRUE), )
   ```
 
 This pulls every approved row (Show on site = TRUE), columns B–R, under your typed
@@ -88,19 +89,19 @@ headers. Tick a box → the row shows up here automatically; untick → it disap
 > If you later add, remove, or reorder form questions, the column letters shift —
 > update `B2:R`, the `S2:S` reference, and the header row to match.
 
-### 5. Publish only the Live listings tab
+### 5. Publish only the Live Activities tab
 
-File → Share → **Publish to web** → pick **Live listings** (not "Entire document")
+File → Share → **Publish to web** → pick **Live Activities** (not "Entire document")
 → **Comma-separated values (.csv)** → Publish. Copy the URL.
 
 **Keep the spreadsheet itself private** — do not turn on "anyone with the link."
-Publish-to-web exposes *only* the Live listings tab as CSV, so raw unapproved
+Publish-to-web exposes *only* the Live Activities tab as CSV, so raw unapproved
 responses stay private while approved rows are public.
 
 ### 6. Point the site at it
 
 Send the developer the published CSV URL. They will:
-- Repoint the site's programs source to the Live listings tab.
+- Repoint the site's programs source to the Live Activities tab.
 - Make the site read the comma-separated category format Google Forms produces
   (Forms joins checkbox answers with commas; the current sheet uses semicolons —
   the site will accept both).
@@ -109,7 +110,7 @@ Send the developer the published CSV URL. They will:
 
 ## Day-to-day for staff
 
-1. A new submission lands in "Form Responses 1" (unchecked = not on the site).
+1. A new submission lands in "Activities" (unchecked = not on the site).
 2. Review it; correct anything that needs fixing.
 3. Tick **Show on site** → within a few minutes it appears on the site.
 4. Untick to pull it back down.
@@ -117,7 +118,7 @@ Send the developer the published CSV URL. They will:
 ## Good to know
 
 - **Header names must match exactly** — the site finds columns by name; your
-  Live listings header row controls that.
+  Live Activities header row controls that.
 - **Caching** — the published CSV refreshes within ~5 minutes, and browsers cache
   too, so changes aren't always instant.
 - **Spam** — because nothing shows until approved, form spam never reaches the site.

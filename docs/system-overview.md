@@ -130,9 +130,9 @@ with the season's name but never called finished.
 
 ```
 Partner org fills a Google Form
-   -> "Form Responses 1" tab (raw, unreviewed — never read by the site)
+   -> "Activities" tab (raw, unreviewed — never read by the site)
    -> staff ticks "Show on site" = TRUE
-   -> "Live listings" tab: a FILTER formula over the approved rows
+   -> "Live Activities" tab: a FILTER formula over the approved rows
    -> published to the web as CSV
    -> fetched by js/data.js on page load
 ```
@@ -142,11 +142,11 @@ anything the app fetches is downloadable by every visitor, so unapproved
 submissions (which contain people's contact details) must never reach the
 published CSV.
 
-**The sharpest operational edge in the whole system:** the "Live listings" tab is
+**The sharpest operational edge in the whole system:** the "Live Activities" tab is
 a `FILTER` formula over a *fixed column range*. Adding a column to the form does
 not flow through on its own. A new column requires (1) adding it in Form
-Responses, (2) adding the same header text to row 1 of Live listings, and (3)
-widening the FILTER range in `Live listings!A2` — and checking that the
+Responses, (2) adding the same header text to row 1 of Live Activities, and (3)
+widening the FILTER range in `'Live Activities'!A2` — and checking that the
 `Show on site` reference still points at the right column, because adding columns
 shifts letters. When this is wrong, **listings silently vanish or cards go blank
 rather than erroring**. Any feature that depends on a new column must budget for
@@ -168,7 +168,7 @@ in:
    that link ("keep it, it's unique to your listing").
 2. **Existing listing edited** (an org used its edit link) → refreshes the link
    and emails staff that the listing changed, with a link to the row.
-3. **"Get my listing links" form** (a second form, `Form Responses 2`) → if the
+3. **"Get my listing links" form** (a second form, `Link Requests`) → if the
    address entered manages any listings, emails that address all its edit links;
    if it manages none, emails *staff* instead. The person asking sees the same
    confirmation either way, so the form cannot be used to discover which
@@ -662,7 +662,7 @@ candidates.
     the grid, so an opened description closes. Acceptable today; worth knowing.
 17. **`gnbyaMember` and `nearestBusRoute` are parsed but never displayed.**
 18. **The FILTER-range gotcha** in §4 is the single most likely way for this site
-    to break silently, and it now applies to two tabs: Live listings and Live
+    to break silently, and it now applies to two tabs: Live Activities and Live
     organizations.
 
 ---

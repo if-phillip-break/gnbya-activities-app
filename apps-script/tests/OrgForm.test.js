@@ -54,9 +54,9 @@ function world(opts = {}) {
     return s;
   }
   const sheets = [
-    makeSheet('Form Responses 1', [['Timestamp', 'Organization Name']], 'https://forms.test/listings'),
-    makeSheet('Form Responses 2', [['Timestamp', 'Email']], 'https://forms.test/lookup'),
-    makeSheet('Live listings', [['Organization Name']], null),
+    makeSheet('Activities', [['Timestamp', 'Organization Name']], 'https://forms.test/listings'),
+    makeSheet('Link Requests', [['Timestamp', 'Email']], 'https://forms.test/lookup'),
+    makeSheet('Live Activities', [['Organization Name']], null),
   ];
   if (opts.preexistingOrganizationsTab) sheets.push(makeSheet('Organizations', [['x']], null));
   const ss = {
@@ -228,8 +228,8 @@ console.log('\n# 2. createOrgForm()');
   check('Organization status: required, Active / Remove from site', byT['Organization status'].required && JSON.stringify(byT['Organization status'].choices) === '["Active","Remove from site"]');
   check('Organization name: required', byT['Organization name'].required);
   check('response editing on, email collection off', f.settings.allowEdits === true && f.settings.collectEmail === false);
-  check('linked as "Form Responses 3" (lookup already holds 2)', w.log.writes.includes('rename "Form Responses 3" -> "Organizations"'), w.log.writes.join(' | '));
-  check('tab now named "Organizations"; the other tabs untouched', JSON.stringify(w.sheets.map((s) => s.name)) === '["Form Responses 1","Form Responses 2","Live listings","Organizations"]');
+  check('linked as a new "Form Responses N" tab, then renamed "Organizations"', w.log.writes.some((x) => /^rename "Form Responses \d+" -> "Organizations"$/.test(x)), w.log.writes.join(' | '));
+  check('tab now named "Organizations"; the other tabs untouched', JSON.stringify(w.sheets.map((s) => s.name)) === '["Activities","Link Requests","Live Activities","Organizations"]');
   check('tab headers = Timestamp + 18 question titles', JSON.stringify(w.tab().rows[0]) === JSON.stringify(['Timestamp', ...items.map((i) => i.title)]));
   check('form ID saved', w.props.ORG_FORM_ID === f.id);
   check('no email sent', w.log.mails.length === 0);
@@ -275,7 +275,7 @@ console.log('\n# 4. backfillOrgs()');
   check('Code.gs trigger fired 43 times, all on "Organizations"', w.log.triggers.length === 43 && w.log.triggers.every((n) => n === 'Organizations'));
   const other = w.log.writes.filter((x) => !x.startsWith('Organizations!') && !x.startsWith('rename'));
   check('nothing written to any other tab', other.length === 0, other.join(' | '));
-  check('Form Responses 1 and 2 unchanged', w.sheets[0].rows.length === 1 && w.sheets[1].rows.length === 1);
+  check('Activities and Link Requests unchanged', w.sheets[0].rows.length === 1 && w.sheets[1].rows.length === 1);
 
   // Run again: nothing new.
   const writesBefore = w.log.writes.length, subsBefore = w.log.submits;
@@ -373,11 +373,11 @@ console.log('\n# 10. Control: the rename is what keeps Code.gs out of it');
   // form. If the mock trigger really runs Code.gs, it should now react.
   const w = world();
   w.g.createOrgForm();
-  w.tab().name = 'Form Responses 2';
+  w.tab().name = 'Link Requests';
   w.g.ORG_TAB_NAME_OVERRIDE = true;
   const orig = w.g.SpreadsheetApp.getActive().getSheetByName;
   const ss = w.g.SpreadsheetApp.getActive();
-  w.g.SpreadsheetApp.getActive = () => ({ ...ss, getSheetByName: (n) => ss.getSheetByName(n === 'Organizations' ? 'Form Responses 2' : n) });
+  w.g.SpreadsheetApp.getActive = () => ({ ...ss, getSheetByName: (n) => ss.getSheetByName(n === 'Organizations' ? 'Link Requests' : n) });
   tryRun(() => w.g.backfillOrgs());
   const reacted = w.log.logs.filter((l) => /Lookup|lookup/.test(l)).length;
   check('with the lookup tab name, Code.gs handles every one of the 43 submissions', reacted === 43, reacted + ' lookup log lines: ' + w.log.logs.slice(0, 2).join(' | '));

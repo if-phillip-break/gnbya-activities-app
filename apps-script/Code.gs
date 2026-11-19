@@ -33,7 +33,7 @@
 const STAFF_EMAIL = "philliptrah2015@gmail.com";
 
 // The tab the form writes into.
-const RESPONSES_SHEET_NAME = "Form Responses 1";
+const RESPONSES_SHEET_NAME = "Activities";
 
 // Column letters in that tab.
 const TIMESTAMP_COLUMN = "A";
@@ -74,7 +74,7 @@ const PROBLEM_SUBJECT = "Activities Guide form script needs a look";
 // ----- "Get my listing links" form -----
 
 // The tab that form writes into, and the column holding the address asked about.
-const LOOKUP_SHEET_NAME = "Form Responses 2";
+const LOOKUP_SHEET_NAME = "Link Requests";
 const LOOKUP_EMAIL_COLUMN = "B";
 
 // Sent to the address asked about, only when it manages at least one listing.

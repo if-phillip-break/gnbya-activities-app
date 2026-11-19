@@ -34,7 +34,7 @@ function addEditUrls() {
   const FORM_ID = 'PASTE_FORM_ID_HERE';
   const COLUMN  = 'Edit link';
 
-  const sheet = SpreadsheetApp.getActive().getSheetByName('Form Responses 1');
+  const sheet = SpreadsheetApp.getActive().getSheetByName('Activities');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   let col = headers.indexOf(COLUMN) + 1;
   if (col === 0) {
@@ -61,7 +61,7 @@ function addEditUrls() {
 
 > ⚠️ **Keep the `Edit link` column out of the published range.** Anyone holding
 > one of these URLs can edit that submission with no password. Put the column to
-> the right of `Show on site`, and never widen the Live listings FILTER to
+> the right of `Show on site`, and never widen the Live Activities FILTER to
 > include it. If an edit link ever reaches the public CSV, strangers can rewrite
 > your listings.
 
@@ -151,19 +151,19 @@ Add a tab called **Dashboard** and paste these in.
 **Headline counts**
 
 ```
-Total submissions      =COUNTA('Form Responses 1'!A2:A)
-Live on the site       =COUNTIF('Form Responses 1'!S:S, TRUE)
-Awaiting review        =COUNTA('Form Responses 1'!A2:A)-COUNTIF('Form Responses 1'!S:S,TRUE)
-Organizations live     =COUNTUNIQUE(FILTER('Form Responses 1'!B2:B,'Form Responses 1'!S2:S=TRUE))
+Total submissions      =COUNTA(Activities!A2:A)
+Live on the site       =COUNTIF(Activities!S:S, TRUE)
+Awaiting review        =COUNTA(Activities!A2:A)-COUNTIF(Activities!S:S,TRUE)
+Organizations live     =COUNTUNIQUE(FILTER(Activities!B2:B,Activities!S2:S=TRUE))
 ```
 
 **Data completeness** — live listings that have a category, a description, a
 cost and a contact:
 
 ```
-=COUNTIFS('Form Responses 1'!$S:$S,TRUE,'Form Responses 1'!$D:$D,"<>",
-          'Form Responses 1'!$E:$E,"<>",'Form Responses 1'!$L:$L,"<>",
-          'Form Responses 1'!$R:$R,"<>")
+=COUNTIFS(Activities!$S:$S,TRUE,Activities!$D:$D,"<>",
+          Activities!$E:$E,"<>",Activities!$L:$L,"<>",
+          Activities!$R:$R,"<>")
 ```
 
 Divide by the "Live on the site" figure for the percentage. This is the single
@@ -173,14 +173,14 @@ anything useful.
 **Going stale** — live listings untouched in six months:
 
 ```
-=COUNTIFS('Form Responses 1'!S:S,TRUE,'Form Responses 1'!A:A,"<"&TODAY()-180)
+=COUNTIFS(Activities!S:S,TRUE,Activities!A:A,"<"&TODAY()-180)
 ```
 
 **Per-organization view** — listing count and last update, oldest first, so the
 top of the list is your call sheet:
 
 ```
-=QUERY({'Form Responses 1'!B2:B,'Form Responses 1'!A2:A,'Form Responses 1'!S2:S},
+=QUERY({Activities!B2:B,Activities!A2:A,Activities!S2:S},
   "select Col1, count(Col2), max(Col2)
    where Col3 = TRUE
    group by Col1
@@ -191,7 +191,7 @@ top of the list is your call sheet:
 **Submissions by month** — shows whether reminders actually moved anything:
 
 ```
-=QUERY({TEXT('Form Responses 1'!A2:A,"yyyy-mm"),'Form Responses 1'!A2:A},
+=QUERY({TEXT(Activities!A2:A,"yyyy-mm"),Activities!A2:A},
   "select Col1, count(Col2) where Col1 <> '' group by Col1 order by Col1
    label count(Col2) 'Submissions'", 0)
 ```

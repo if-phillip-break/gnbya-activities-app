@@ -39,7 +39,7 @@ const ORG_FORM_DESCRIPTION =
   "at any time.";
 
 // What the response tab is renamed to. Code.gs routes form submissions by tab
-// name and handles only "Form Responses 1" and "Form Responses 2", so a tab
+// name and handles only "Activities" and "Link Requests", so a tab
 // called this is ignored by it.
 const ORG_TAB_NAME = "Organizations";
 const ORG_EDIT_LINK_HEADER = "Edit link";

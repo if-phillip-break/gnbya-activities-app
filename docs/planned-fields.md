@@ -30,10 +30,10 @@ listings after the fact.
 
 **To wire it up:** add the question to the Form titled exactly `Activity Type`,
 then follow "Adding a column without breaking the site" below — the answer does
-nothing until the column is in the Live listings header row *and* inside its
+nothing until the column is in the Live Activities header row *and* inside its
 FILTER range.
 
-⚠️ Google decides where the new column lands in "Form Responses 1", and it may
+⚠️ Google decides where the new column lands in "Activities", and it may
 push `Show on site` to a different letter. Submit one test response and check
 both letters before ticking anything, or the FILTER will read the wrong column.
 
@@ -149,13 +149,13 @@ around these specifically, and they're the hardest weeks to find coverage for.
 
 ## Adding a column without breaking the site
 
-The Live listings tab is a FILTER formula over a fixed column range, so a new
+The Live Activities tab is a FILTER formula over a fixed column range, so a new
 column doesn't flow through on its own. Each time you add one:
 
-1. Add it in **"Form Responses 1"** (as a form question, or as a staff-only
+1. Add it in **"Activities"** (as a form question, or as a staff-only
    column to the right).
-2. Add the same header text to **row 1 of "Live listings"**.
-3. Update the FILTER range in `Live listings!A2` so the new column is inside it,
+2. Add the same header text to **row 1 of "Live Activities"**.
+3. Update the FILTER range in `'Live Activities'!A2` so the new column is inside it,
    and check that the `Show on site` reference still points at the right column
    — adding columns shifts the letters.
 4. Tell the developer the column is live so the matching filter gets switched on.
