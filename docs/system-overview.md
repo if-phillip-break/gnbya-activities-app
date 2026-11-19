@@ -234,7 +234,7 @@ instead of going blank on whichever half has not caught up.
 | `address` | `Address` | |
 | `busAccessible` | `How can kids get to this program?`, `Transportation Accessible?`, `Bus Accessible?` | True when the answer contains "near a/an SRTA bus route", **or** is a legacy Yes / TRUE / Y / X. Drives the Bus accessible filter |
 | `schoolPickup` | same transport answer | True when it contains "pick(s) kids up from school". Badge only; there is no filter for it |
-| `notRunning` | `Listing status` | Staff-set. True only for the exact answer "Not running this season"; blank or "Active" is a normal listing. **See §12: production's header is `Listing Status`** |
+| `notRunning` | `Listing status`, `Listing Status` | Staff-set. True only for the exact answer "Not running this season"; blank or "Active" is a normal listing. Both spellings are read because production capitalises the header and the test sheet does not |
 | `nearestBusRoute` | `Nearest Bus Route/Stop` | Parsed but not shown on the card |
 | `staffLanguageSupport` | `Translation Available?`, `Staff Language Support` | |
 | `translationAvailable` | `Languages Provided`, `Translation Available` | Comma-separated list |
@@ -533,16 +533,16 @@ companion piece.
 These are real, verified against the live feed today. Several are good feature
 candidates.
 
-1. **"Not running this season" will not work on production as merged.** The code
-   reads the header `Listing status`; production publishes `Listing Status`
-   (capital S), and header matching is exact and case-sensitive (`rowsToRecords`
-   in `js/csv.js`). Verified: the same row with the value "Not running this
-   season" maps to `notRunning = true` under `Listing status` and `false` under
-   `Listing Status`. It does no harm today, because every production value is
-   still blank, but the first time staff use it, nothing will happen and nothing
-   will error. The test sheet uses the lowercase spelling, which is why testing
-   did not catch it. Fix: read it through `pick()` with both spellings, or
-   rename the production header.
+1. **Header matching is exact and case-sensitive** (`rowsToRecords` in
+   `js/csv.js`). Capitals already drift: production publishes `Listing Status`
+   where the test sheet has `Listing status`, and both sheets publish
+   `Activity type` where the form setup docs say `Activity Type`. A field read
+   under only one spelling can work in testing and
+   silently does nothing on production. `Listing status` hit exactly this and is
+   now read under both spellings; any new column should be read through `pick()`
+   with every spelling either sheet is known to use. A case-insensitive lookup in
+   `rowsToRecords` would remove the whole class of bug, at the cost of touching
+   every field at once.
 2. **An explicit Yes/No beats the cost text, even when they contradict.**
    Production now fills `Is the program free?` for several listings, which fixed
    the old problem of free programs with a blank cost being missed by the Free

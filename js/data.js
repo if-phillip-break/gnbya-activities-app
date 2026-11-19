@@ -372,8 +372,11 @@ function mapRecordToProgram(record) {
     busAccessible: /near an? srta bus route/i.test(transport) || toBool(transport),
     schoolPickup: /picks? kids up from school/i.test(transport),
     // Staff-set. Only this exact answer means anything; blank or "Active" is a
-    // normal listing.
-    notRunning: /^not running this season$/i.test((record["Listing status"] || "").trim()),
+    // normal listing. Production capitalises the header ("Listing Status") and
+    // headers match exactly, so accept both spellings.
+    notRunning: /^not running this season$/i.test(
+      pick(record, "Listing status", "Listing Status").trim()
+    ),
     nearestBusRoute: toNullableString(record["Nearest Bus Route/Stop"]),
     staffLanguageSupport: toNullableString(
       pick(record, "Translation Available?", "Staff Language Support")
