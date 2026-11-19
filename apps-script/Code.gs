@@ -1,8 +1,9 @@
 /**
  * GNBYA Activities Guide: intake form helper (Google Apps Script)
  *
- * Bound to the TEST intake spreadsheet. The website never loads this file; it
- * lives in the repo so there's a record of what runs inside the sheet.
+ * Set up for the PRODUCTION intake spreadsheet (column letters in SETTINGS).
+ * The website never loads this file; it lives in the repo so there's a record
+ * of what runs inside the sheet.
  *
  * What it does on every form submission:
  *   - writes the response's "edit your listing" link into the Edit link column
@@ -16,6 +17,10 @@
  *   - it doesn't               -> emails staff; the person asking gets nothing
  *     (the form's confirmation is the same either way)
  *
+ * Rows with a blank Timestamp were typed in by hand and have no form response.
+ * The script never writes to them, never matches them, and never emails about
+ * them.
+ *
  * Run once:  setup()            (creates the form-submit trigger)
  * Optional:  backfillEditLinks() (fills Edit link for existing rows, no emails)
  */
@@ -25,7 +30,7 @@
 // =====================================================================
 
 // Where staff "a listing was edited" emails go.
-const STAFF_EMAIL = "staff@example.org";
+const STAFF_EMAIL = "philliptrah2015@gmail.com";
 
 // The tab the form writes into.
 const RESPONSES_SHEET_NAME = "Form Responses 1";
@@ -33,8 +38,8 @@ const RESPONSES_SHEET_NAME = "Form Responses 1";
 // Column letters in that tab.
 const TIMESTAMP_COLUMN = "A";
 const MANAGER_EMAIL_COLUMN = "W";
-const SHOW_ON_SITE_COLUMN = "AA"; // read-only for this script: never written
-const EDIT_LINK_COLUMN = "AB";
+const SHOW_ON_SITE_COLUMN = "Z"; // read-only for this script: never written
+const EDIT_LINK_COLUMN = "AA";
 
 // Header text expected in row 1. The script checks them before writing, so a
 // column that moved (adding a form question can shift columns) stops the
@@ -138,6 +143,10 @@ function handleListingSubmit_(e) {
   // Forms reports the row it wrote, and for an edit that's the same row
   // it updated, so we never have to search for the row.
   const row = e.range.getRow();
+  if (isHandTyped_(sheet.getRange(TIMESTAMP_COLUMN + row).getValue())) {
+    Logger.log("Row " + row + " has no Timestamp (typed in by hand): left alone.");
+    return;
+  }
   const editCell = sheet.getRange(EDIT_LINK_COLUMN + row);
   const hadLink = String(editCell.getValue()).trim() !== "";
   const listing = describeRow_(sheet, row);
@@ -186,6 +195,7 @@ function handleLookupSubmit_(e) {
   if (!sheet) throw new Error('No tab named "' + RESPONSES_SHEET_NAME + '".');
   checkHeaders_(sheet); // a moved column must not mail the wrong cells
   const result = findListingsForEmail_(sheet.getDataRange().getValues(), {
+    timestamp: columnIndex_(sheet, TIMESTAMP_COLUMN),
     email: columnIndex_(sheet, MANAGER_EMAIL_COLUMN),
     link: columnIndex_(sheet, EDIT_LINK_COLUMN),
   }, requester);
@@ -207,7 +217,9 @@ function handleLookupSubmit_(e) {
 /**
  * Pure lookup over the listings tab's values (row 1 = headers). Returns the
  * listings managed by `email` that have an Edit link, and the sheet row numbers
- * of matches that don't. Email comparison ignores case and all spaces.
+ * of matches that don't. Email comparison ignores case and all spaces. Rows
+ * typed in by hand (blank Timestamp) are skipped: they have no edit link, and
+ * no backfill will ever give them one.
  */
 function findListingsForEmail_(values, cols, email) {
   const norm = (s) => String(s).replace(/\s+/g, "").toLowerCase();
@@ -218,6 +230,7 @@ function findListingsForEmail_(values, cols, email) {
   const listings = [], missingLinkRows = [];
   for (let i = 1; i < values.length; i++) {
     const r = values[i];
+    if (isHandTyped_(r[cols.timestamp])) continue;
     if (want === "" || norm(r[cols.email]) !== want) continue;
     const editLink = String(r[cols.link]).trim();
     if (!editLink) { missingLinkRows.push(i + 1); continue; }
@@ -249,19 +262,20 @@ function backfillEditLinks() {
   if (lastRow < 2) return;
 
   const index = formResponsesIndex_();
-  const linkRange = sheet.getRange(EDIT_LINK_COLUMN + "2:" + EDIT_LINK_COLUMN + lastRow);
-  const links = linkRange.getValues();
+  const links = sheet.getRange(EDIT_LINK_COLUMN + "2:" + EDIT_LINK_COLUMN + lastRow).getValues();
+  const stamps = sheet.getRange(TIMESTAMP_COLUMN + "2:" + TIMESTAMP_COLUMN + lastRow).getValues();
   let filled = 0, unmatched = [];
   links.forEach((cell, i) => {
     const row = i + 2;
     if (String(cell[0]).trim() !== "") return; // never overwrite an existing link
-    if (String(sheet.getRange(TIMESTAMP_COLUMN + row).getValue()).trim() === "") return;
+    if (isHandTyped_(stamps[i][0])) return; // no form response to link to
     const response = findResponseForRow_(sheet, row, index);
-    if (response) { cell[0] = response.getEditResponseUrl(); filled++; }
-    else unmatched.push(row);
+    if (!response) { unmatched.push(row); return; }
+    // One cell at a time. Writing the whole column back would also rewrite
+    // every row it skipped, flattening any formula or value typed there.
+    sheet.getRange(EDIT_LINK_COLUMN + row).setValue(response.getEditResponseUrl());
+    filled++;
   });
-  // Only the Edit link column is written, and existing values go back unchanged.
-  linkRange.setValues(links);
   Logger.log("Filled " + filled + " edit link(s)." +
     (unmatched.length ? " Couldn't match rows: " + unmatched.join(", ") : ""));
 }
@@ -329,6 +343,11 @@ function responsesFormUrl_() {
   const url = sheet && sheet.getFormUrl();
   if (!url) throw new Error('The "' + RESPONSES_SHEET_NAME + '" tab isn\'t linked to a form.');
   return url;
+}
+
+// A row typed straight into the sheet has no Timestamp and no form response.
+function isHandTyped_(timestamp) {
+  return String(timestamp).trim() === "";
 }
 
 function isEmail_(s) {

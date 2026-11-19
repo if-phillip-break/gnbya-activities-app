@@ -4,7 +4,8 @@ A complete description of what this tool is, what data it holds, and exactly how
 it behaves. Written to be handed to someone (or some agent) with no prior context
 who needs to reason about new features.
 
-Accurate as of 2026-11-18, commit `811b3c0` on the `forms-v2` branch (not yet
+Accurate as of 2026-11-18 on the `forms-v2` branch, up to and including the
+commit that set the Apps Script up for the production sheet (not yet
 merged to `master` or deployed). Section 11's data was read from the production
 feed on that date.
 
@@ -149,8 +150,11 @@ this step.
 ### The intake Apps Script (edit links and emails)
 
 `apps-script/Code.gs` runs **inside the intake spreadsheet**, not on the site;
-it lives in the repo only so there is a record of it. It is currently bound to
-the **test** intake spreadsheet, not production. It does three jobs off one
+it lives in the repo only so there is a record of it. Its settings are for the
+**production** intake spreadsheet, and staff notices go to
+`philliptrah2015@gmail.com` (`STAFF_EMAIL`). Committing it here does not install
+it: someone has to paste it into the production spreadsheet's Apps Script
+editor and run `setup()` once. It does three jobs off one
 installable "on form submit" trigger, routing on which tab the response landed
 in:
 
@@ -169,13 +173,25 @@ What it deliberately refuses to do:
 
 - **It never writes `Show on site`.** Approval stays a staff decision.
 - **It checks row-1 headers before writing.** Column letters are hard-coded
-  (manager email `W`, `Show on site` `AA`, `Edit link` `AB`); if a form change
+  (manager email `W`, `Show on site` `Z`, `Edit link` `AA`; `Listing Status` in
+  `X` is never read or written); if a form change
   shifts columns and the expected headers are no longer there, it stops and
   emails staff rather than writing into the wrong column.
 - **It will not guess a match.** A sheet row is matched to its form response by
   timestamp; if two responses share a second, it breaks the tie on the manager
   email, and if that still is not unique it writes nothing, because a wrong
   guess would send someone else's edit link.
+
+- **It never touches a row with no Timestamp.** Those rows were typed straight
+  into the sheet by staff and have no form response behind them. The submit
+  handler, the backfill and the link lookup all skip them: nothing is written,
+  nothing is matched, and no email is sent about them. The backfill writes only
+  the individual cells it fills, so a formula or note in a hand-typed row's
+  `Edit link` cell survives.
+
+Header comparison ignores capitals and extra spaces, so the production headers
+"Listing Manager Email", "Show on Site" and "Edit Link" all satisfy the
+script's checks.
 
 `setup()` installs the trigger once; `backfillEditLinks()` fills links for rows
 that predate the script, without sending email.
@@ -565,11 +581,12 @@ candidates.
 6. **Edits to approved listings go live without re-approval** (§4). Fine for
    fixing a typo; it also means an organization can change a live listing's
    content at any time, and staff find out only from an email.
-7. **The Apps Script is not production-ready as committed.** It is bound to the
-   test sheet, and `STAFF_EMAIL` is still the placeholder `staff@example.org`,
-   so every staff notification (edits, problems, unknown-address lookups) would
-   go nowhere until it is changed. Its hard-coded column letters must also be
-   re-checked against the production sheet, which has a different layout.
+7. **The Apps Script's column letters are hard-coded and only guarded, not
+   found.** They match production as confirmed on 2026-11-18 (W, Z, AA). The
+   header check stops it writing into a moved column, but the fix is still a
+   manual edit of the letters at the top of the script. Adding a form question
+   can shift columns. Re-check the letters after any form change, and the script
+   must be re-pasted into the spreadsheet after any change to the repo copy.
 8. **The date parser assumes the current calendar year.** A listing written for a
    previous year parses into this year, and a recurring annual program described
    as "Monthly sessions January to June" reads as January–June *this* year —
