@@ -24,9 +24,17 @@ function check(label, cond, detail) {
   else { fail++; console.log('  FAIL ' + label + (detail ? '  -> ' + detail : '')); }
 }
 
+// Column letter -> 1-based number ("AA" -> 27).
+const colNum = (L) => [...L].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0);
+
+// The Activities tab's production layout (confirmed from the sheet).
+const ACT = { email: colNum('W'), show: colNum('Z'), link: colNum('AA') };
+
 function world(opts = {}) {
   const csvText = opts.csvText || fs.readFileSync(REPO + 'data/organizations_placeholder_sheet.csv', 'utf8');
-  const log = { mails: [], logs: [], triggers: [], writes: [], submits: 0 };
+  // CODE_GS=<path> runs the whole suite against another Code.gs (e.g. master's).
+  const codeSource = opts.codeSource || fs.readFileSync(process.env.CODE_GS || REPO + 'apps-script/Code.gs', 'utf8');
+  const log = { mails: [], mailFull: [], logs: [], triggers: [], writes: [], submits: 0 };
   let nextId = 1, clock = Date.UTC(2026, 10, 19, 15, 0, 0);
 
   // ----- sheets -----
@@ -37,27 +45,45 @@ function world(opts = {}) {
       getFormUrl: () => s.formUrl, getSheetId: () => s.id,
       getLastRow: () => s.rows.length, getLastColumn: () => Math.max(0, ...s.rows.map((r) => r.length)),
       getDataRange: () => ({ getValues: () => { const w = s.api.getLastColumn(); return s.rows.map((r) => Array.from({ length: w }, (_, i) => (r[i] === undefined ? '' : r[i]))); } }),
-      getRange: (a, b) => {
-        if (typeof a !== 'number') {
-          // Code.gs addresses cells as "B5". Support single cells only.
-          const m = String(a).match(/^([A-Z]+)(\d+)$/);
+      // Both ways Apps Script addresses a range: "B5" / "AA2:AA44", or
+      // (row, col[, numRows, numCols]). Writes are single cells only: neither
+      // script should ever write a block.
+      getRange: (a, b, nr, nc) => {
+        let r1, c1, r2, c2;
+        if (typeof a === 'number') {
+          r1 = a; c1 = b; r2 = a + (nr || 1) - 1; c2 = b + (nc || 1) - 1;
+        } else {
+          const m = String(a).match(/^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/);
           if (!m) throw new Error('test mock: unsupported range ' + a);
-          b = [...m[1]].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0); a = +m[2];
+          c1 = colNum(m[1]); r1 = +m[2]; c2 = m[3] ? colNum(m[3]) : c1; r2 = m[4] ? +m[4] : r1;
         }
+        const at = (r, c) => { const v = (s.rows[r - 1] || [])[c - 1]; return v === undefined ? '' : v; };
         return {
-          getColumn: () => b, getRow: () => a,
-          getValue: () => (s.rows[a - 1] || [])[b - 1] ?? '',
-          setValue: (v) => { while (s.rows.length < a) s.rows.push([]); s.rows[a - 1][b - 1] = v; log.writes.push(`${s.name}!R${a}C${b} <- ${String(v).slice(0, 40)}`); },
+          getColumn: () => c1, getRow: () => r1,
+          getValue: () => at(r1, c1),
+          getValues: () => { const out = []; for (let r = r1; r <= r2; r++) { const row = []; for (let c = c1; c <= c2; c++) row.push(at(r, c)); out.push(row); } return out; },
+          setValue: (v) => {
+            if (r1 !== r2 || c1 !== c2) throw new Error('test mock: setValue on a multi-cell range');
+            while (s.rows.length < r1) s.rows.push([]);
+            s.rows[r1 - 1][c1 - 1] = v;
+            log.writes.push(`${s.name}!R${r1}C${c1} <- ${String(v).slice(0, 40)}`);
+          },
+          setValues: () => { throw new Error('test mock: block writes are not expected'); },
         };
       },
     };
     return s;
   }
+  // Activities header row in production's layout and capitals.
+  const actHeader = Array.from({ length: ACT.link }, () => '');
+  actHeader[0] = 'Timestamp'; actHeader[1] = 'Organization Name'; actHeader[2] = 'Program Name';
+  actHeader[ACT.email - 1] = 'Listing Manager Email'; actHeader[ACT.show - 1] = 'Show on Site'; actHeader[ACT.link - 1] = 'Edit Link';
   const sheets = [
-    makeSheet('Activities', [['Timestamp', 'Organization Name']], 'https://forms.test/listings'),
+    makeSheet('Activities', [actHeader], 'https://forms.test/listings'),
     makeSheet('Link Requests', [['Timestamp', 'Email']], 'https://forms.test/lookup'),
     makeSheet('Live Activities', [['Organization Name']], null),
   ];
+  const activities = sheets[0], linkRequests = sheets[1];
   if (opts.preexistingOrganizationsTab) sheets.push(makeSheet('Organizations', [['x']], null));
   const ss = {
     getId: () => 'SS-PROD', getUrl: () => 'https://sheets.test/prod',
@@ -129,7 +155,8 @@ function world(opts = {}) {
             clock += opts.sameSecond ? 0 : 1000;
             const ts = new Date(clock);
             const r = { answers, ts, url: `https://forms.test/${f.id}/edit?r=${f.responses.length + 1}` };
-            r.api = { getItemResponses: () => answers, getEditResponseUrl: () => r.url, getTimestamp: () => ts };
+            // r.ts, not ts: an edit moves the timestamp (see editOrg below).
+            r.api = { getItemResponses: () => answers, getEditResponseUrl: () => r.url, getTimestamp: () => r.ts };
             f.responses.push(r);
             // Forms writes the row: Timestamp, then one cell per question; checkbox answers joined with ", ".
             const row = [ts, ...f.items.map((it) => {
@@ -138,10 +165,9 @@ function world(opts = {}) {
               const v = a.getResponse(); return Array.isArray(v) ? v.join(', ') : v;
             })];
             f.sheet.rows.push(row);
+            r.rowNum = f.sheet.rows.length;
             // The installable trigger from Code.gs fires for every linked form.
-            const sheetApi = f.sheet.api, rowNum = f.sheet.rows.length;
-            log.triggers.push(sheetApi.getName());
-            g.handleFormSubmit({ range: { getSheet: () => sheetApi, getRow: () => rowNum } });
+            fire(f.sheet, r.rowNum);
             return r.api;
           },
         };
@@ -150,8 +176,71 @@ function world(opts = {}) {
     };
     f.api = api; forms['id:' + f.id] = f; return f;
   }
-  forms['https://forms.test/listings'] = { api: { getId: () => 'F-LISTINGS' } };
+  // The listings form: just enough for Code.gs to match rows to responses.
+  const listingForm = { responses: [] };
+  listingForm.api = { getId: () => 'F-LISTINGS', getResponses: () => listingForm.responses.map((r) => r.api) };
+  forms['https://forms.test/listings'] = listingForm;
   forms['https://forms.test/lookup'] = { api: { getId: () => 'F-LOOKUP' } };
+
+  // What the installable form-submit trigger does: call Code.gs for that row.
+  function fire(sheet, rowNum) {
+    log.triggers.push(sheet.name);
+    g.handleFormSubmit({ range: { getSheet: () => sheet.api, getRow: () => rowNum } });
+  }
+  function listingResponse(ts, email, url) {
+    listingForm.responses.push({ api: {
+      getTimestamp: () => ts, getEditResponseUrl: () => url,
+      getItemResponses: () => [{ getItem: () => ({ getTitle: () => 'Listing Manager Email' }), getResponse: () => email }],
+    } });
+  }
+  function listingRow({ ts = '', org, prog, email = '', link = '' }) {
+    const row = Array.from({ length: ACT.link }, () => '');
+    row[0] = ts; row[1] = org; row[2] = prog; row[ACT.email - 1] = email; row[ACT.show - 1] = false; row[ACT.link - 1] = link;
+    activities.rows.push(row);
+    return activities.rows.length;
+  }
+  // A new listing, as Forms delivers it: response, row, trigger.
+  function submitListing({ org, prog, email }) {
+    clock += 1000;
+    const ts = new Date(clock), url = 'https://forms.test/F-LISTINGS/edit?r=' + (listingForm.responses.length + 1);
+    listingResponse(ts, email, url);
+    const row = listingRow({ ts, org, prog, email });
+    fire(activities, row);
+    return { row, url };
+  }
+  // A "Get my listing links" submission.
+  function lookup(email) {
+    clock += 1000;
+    linkRequests.rows.push([new Date(clock), email]);
+    fire(linkRequests, linkRequests.rows.length);
+  }
+  // A new organization through the Organizations form.
+  function submitOrg(answers) {
+    const f = log.created, b = f.api.createResponse();
+    for (const [title, value] of Object.entries(answers)) b.withItemResponse(f.items.find((i) => i.title === title).api.createResponse(value));
+    return b.submit();
+  }
+  // An organization editing its response through its edit link: Forms rewrites
+  // the same row with a new timestamp, then the trigger fires for that row.
+  function editOrg(index, changes) {
+    const f = log.created, r = f.responses[index];
+    for (const [title, value] of Object.entries(changes)) {
+      const it = f.items.find((i) => i.title === title);
+      const k = r.answers.findIndex((a) => a.getItem().getId() === it.id);
+      const next = it.api.createResponse(value);
+      if (k >= 0) r.answers[k] = next; else r.answers.push(next);
+    }
+    clock += 1000; r.ts = new Date(clock);
+    const row = f.sheet.rows[r.rowNum - 1];
+    row[0] = r.ts;
+    f.items.forEach((it, i) => {
+      const a = r.answers.find((x) => x.getItem().getId() === it.id);
+      const v = a ? a.getResponse() : '';
+      row[i + 1] = Array.isArray(v) ? v.join(', ') : v;
+    });
+    fire(f.sheet, r.rowNum);
+    return r.rowNum;
+  }
 
   const props = {};
   const validation = () => { const v = { kind: null, help: '' }; const b = {
@@ -173,7 +262,7 @@ function world(opts = {}) {
     UrlFetchApp: { fetch: (u) => { assert.strictEqual(u, CSV_URL); return { getResponseCode: () => (opts.httpFail ? 404 : 200), getContentText: () => csvText }; } },
     Utilities: { parseCsv: (t) => parseCSV(t), sleep: () => {} },
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props[k] || null, setProperty: (k, v) => { props[k] = v; } }) },
-    MailApp: { sendEmail: (to, subj) => log.mails.push(to + ' :: ' + subj) },
+    MailApp: { sendEmail: (to, subj, body) => { log.mails.push(to + ' :: ' + subj); log.mailFull.push({ to, subj, body: String(body) }); } },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     CacheService: { getScriptCache: () => ({ get: () => null, put() {} }) },
     ScriptApp: {},
@@ -184,13 +273,14 @@ function world(opts = {}) {
     vm.createContext(ctx);
     // Two separate scripts in one realm, like two .gs files in one project:
     // a duplicate top-level const/function would throw here.
-    vm.runInContext(fs.readFileSync(REPO + 'apps-script/Code.gs', 'utf8'), ctx, { filename: 'Code.gs' });
+    vm.runInContext(codeSource, ctx, { filename: 'Code.gs' });
     vm.runInContext(src, ctx, { filename: 'OrgForm.gs' });
     return ctx;
   };
   load(g, orgSource);
   return {
     g, log, sheets, props, form: () => log.created, tab: () => sheets.find((s) => s.name === 'Organizations'),
+    activities, linkRequests, fire, listingResponse, listingRow, submitListing, lookup, submitOrg, editOrg,
     // Paste a different OrgForm.gs into the same spreadsheet: same forms, tabs and
     // script properties, new code.
     reload: (src) => load({ ...services }, src),
@@ -406,6 +496,185 @@ console.log('\n# 11. The production failure, reproduced, then recovered from');
   const names = f.responses.map((r) => r.answers[0].getResponse());
   check('...still exactly 43 responses, no duplicates, zero emails', names.length === 43 && new Set(names).size === 43 && w.log.mails.length === 0);
   check('...log reports it', /Submitted 0, skipped 43 already in the form\. Wrote 0 edit link\(s\)\. "Listing manager email" is now required\./.test(w.log.logs[w.log.logs.length - 1]), w.log.logs[w.log.logs.length - 1]);
+}
+
+// ===================================================================
+// Code.gs and the Organizations tab (follow-up C)
+// ===================================================================
+
+// A production-like spreadsheet after OrgForm.gs ran: the form, 43 backfilled
+// organizations with links, and staff's Show on site column (all ticked).
+const SHOW_COL = 21; // the column staff added after Edit link (T)
+function orgWorld(opts) {
+  const w = world(opts);
+  w.g.createOrgForm();
+  w.g.backfillOrgs();
+  const tab = w.tab();
+  tab.rows[0][SHOW_COL - 1] = 'Show on site';
+  tab.rows.slice(1).forEach((r) => (r[SHOW_COL - 1] = true));
+  w.mark = () => ({ mails: w.log.mails.length, writes: w.log.writes.length });
+  w.since = (m) => ({ mails: w.log.mailFull.slice(m.mails), writes: w.log.writes.slice(m.writes) });
+  return w;
+}
+const LINK_COL = 20, EMAIL_COL = 18;
+const newOrg = (name, email) => ({ 'Organization name': name, 'Website': 'https://' + name.replace(/\W+/g, '').toLowerCase() + '.test',
+  'Listing manager email': email, 'Organization status': 'Active' });
+
+console.log('\n# 12. The 43 backfilled organizations trigger no email (new Code.gs)');
+{
+  const w = world();
+  w.g.createOrgForm();
+  const err = tryRun(() => w.g.backfillOrgs());
+  check('backfill runs to the end: Code.gs never throws on a backfilled row', err === null, err);
+  check('trigger fired 43 times on Organizations', w.log.triggers.filter((t) => t === 'Organizations').length === 43);
+  check('ZERO emails', w.log.mails.length === 0, w.log.mails.join(' | '));
+  const orgWrites = w.log.writes.filter((x) => x.startsWith('Organizations!'));
+  check('Code.gs wrote nothing: the only writes are backfillOrgs\'s 43 links + header', orgWrites.length === 44, orgWrites.length + ' writes');
+  check('each row was recognised as a backfilled organization', w.log.logs.filter((l) => /no listing manager email \(a backfilled organization\)/.test(l)).length === 43);
+}
+
+console.log('\n# 13. A new organization');
+{
+  const w = orgWorld();
+  const m = w.mark();
+  const resp = w.submitOrg(newOrg('Brand New Org', 'bob@org.test'));
+  const tab = w.tab(), rowNum = tab.rows.length, d = w.since(m);
+  check('its edit link is written into its own row', tab.rows[rowNum - 1][LINK_COL - 1] === resp.getEditResponseUrl());
+  check('exactly one write, to that one cell', d.writes.length === 1 && d.writes[0].startsWith(`Organizations!R${rowNum}C${LINK_COL} `), d.writes.join(' | '));
+  check('Show on site is never written', !w.log.writes.some((x) => new RegExp(`^Organizations!R\\d+C${SHOW_COL} `).test(x)));
+  const thanks = d.mails.find((x) => x.to === 'bob@org.test');
+  check('the listing manager is thanked, with their link and the review note', thanks && /Brand New Org/.test(thanks.subj) &&
+    thanks.body.includes(resp.getEditResponseUrl()) && /review it before it appears/.test(thanks.body), JSON.stringify(thanks));
+  const staff = d.mails.find((x) => x.to === 'philliptrah2015@gmail.com');
+  check('staff are told it is waiting for approval, with a link to its row', staff && staff.subj === 'New organization waiting for approval: Brand New Org' &&
+    staff.body.includes('range=A' + rowNum) && /Show on site/.test(staff.body), JSON.stringify(staff));
+  check('exactly those two emails', d.mails.length === 2, d.mails.map((x) => x.to + ' :: ' + x.subj).join(' | '));
+}
+
+console.log('\n# 14. An organization edits its profile');
+{
+  const w = orgWorld();
+  const tab = w.tab(), firstLink = tab.rows[1][LINK_COL - 1];
+  let m = w.mark();
+  w.editOrg(0, { 'Listing manager email': 'mgr@3rdeye.test', 'Description': 'Updated.' });
+  let d = w.since(m);
+  check('a backfilled org adding its email = an edit: one email, to staff only', d.mails.length === 1 && d.mails[0].to === 'philliptrah2015@gmail.com', d.mails.map((x) => x.to).join(', '));
+  check('...subject names it, body gives its status and row', d.mails[0]?.subj === 'Organization edited: 3rd EyE Youth Empowerment' &&
+    /Organization status: Active/.test(d.mails[0]?.body) && d.mails[0]?.body.includes('range=A2'), d.mails[0]?.subj);
+  check('...link refreshed in place (same link), nothing else written', tab.rows[1][LINK_COL - 1] === firstLink && d.writes.length === 1 && d.writes[0].startsWith(`Organizations!R2C${LINK_COL} `), d.writes.join(' | '));
+  m = w.mark();
+  w.editOrg(0, { 'Organization status': 'Remove from site' });
+  d = w.since(m);
+  check('choosing "Remove from site": staff email says so', d.mails.length === 1 && /Organization status: Remove from site/.test(d.mails[0].body));
+  w.submitOrg(newOrg('Brand New Org', 'bob@org.test'));
+  m = w.mark();
+  w.editOrg(w.form().responses.length - 1, { 'Description': 'Now with a description.' });
+  d = w.since(m);
+  check('editing a new organization: one staff email, no second thank-you', d.mails.length === 1 && d.mails[0].subj === 'Organization edited: Brand New Org', d.mails.map((x) => x.to + ' :: ' + x.subj).join(' | '));
+  check('Show on site still untouched after all of it', !w.log.writes.some((x) => new RegExp(`^Organizations!R\\d+C${SHOW_COL} `).test(x)) && tab.rows.slice(1, 44).every((r) => r[SHOW_COL - 1] === true));
+}
+
+console.log('\n# 15. Edge cases on the Organizations tab');
+{
+  const w = orgWorld(), tab = w.tab();
+  const blankRow = () => Array.from({ length: SHOW_COL }, () => '');
+  // Hand-typed: no Timestamp.
+  let m = w.mark();
+  const hand = blankRow(); hand[1] = 'Hand Typed Org'; hand[EMAIL_COL - 1] = 'hand@org.test';
+  tab.rows.push(hand); w.fire(tab, tab.rows.length);
+  let d = w.since(m);
+  check('hand-typed row: nothing written, nobody emailed', d.writes.length === 0 && d.mails.length === 0);
+  // A row with no form response behind it.
+  m = w.mark();
+  const orphan = blankRow(); orphan[0] = new Date(Date.UTC(2030, 0, 1)); orphan[1] = 'Orphan Org'; orphan[EMAIL_COL - 1] = 'orphan@org.test';
+  tab.rows.push(orphan); w.fire(tab, tab.rows.length);
+  d = w.since(m);
+  check('no matching response: staff problem email, nothing written', d.writes.length === 0 && d.mails.length === 1 &&
+    /Couldn't match Organizations row/.test(d.mails[0].body), d.mails.map((x) => x.body.split('\n')[0]).join(' | '));
+  // Edit link column renamed.
+  const w2 = orgWorld(), tab2 = w2.tab();
+  tab2.rows[0][LINK_COL - 1] = 'Links';
+  m = w2.mark();
+  w2.submitOrg(newOrg('Another Org', 'ann@org.test'));
+  d = w2.since(m);
+  check('no "Edit link" column: staff problem email naming it, nothing written, no thank-you', d.writes.length === 0 && d.mails.length === 1 &&
+    d.mails[0].to === 'philliptrah2015@gmail.com' && /no "Edit link" column/.test(d.mails[0].body), d.mails.map((x) => x.to + ': ' + x.body.split('\n')[0]).join(' | '));
+  // Same-second responses: the email breaks the tie.
+  const w3 = orgWorld({ sameSecond: true }), tab3 = w3.tab();
+  const a = w3.submitOrg(newOrg('Twin One', 'one@org.test')), b = w3.submitOrg(newOrg('Twin Two', 'two@org.test'));
+  const rowOf = (name) => tab3.rows.find((r) => r[1] === name);
+  check('45 responses in one second: each new row still gets its own link', rowOf('Twin One')[LINK_COL - 1] === a.getEditResponseUrl() && rowOf('Twin Two')[LINK_COL - 1] === b.getEditResponseUrl());
+  const t1 = w3.log.mailFull.find((x) => x.to === 'one@org.test'), t2 = w3.log.mailFull.find((x) => x.to === 'two@org.test');
+  check('...and each manager is sent their own link, not the other\'s', !!t1 && !!t2 && t1.body.includes(a.getEditResponseUrl()) &&
+    t2.body.includes(b.getEditResponseUrl()) && !t1.body.includes(b.getEditResponseUrl()));
+}
+
+console.log('\n# 16. "Get my listing links" searches organizations too');
+{
+  const w = orgWorld(), tab = w.tab();
+  const T = (s) => new Date(Date.UTC(2026, 9, 1, 9, 0, s));
+  w.listingResponse(T(1), 'alice@org.test', 'https://forms.test/F-LISTINGS/edit?r=alice');
+  w.listingRow({ ts: T(1), org: 'Alice Org', prog: 'Alice Camp', email: 'alice@org.test', link: 'https://forms.test/F-LISTINGS/edit?r=alice' });
+  w.listingResponse(T(2), 'carol@org.test', 'https://forms.test/F-LISTINGS/edit?r=carol');
+  w.listingRow({ ts: T(2), org: 'Carol Org', prog: 'Carol Club', email: 'carol@org.test', link: 'https://forms.test/F-LISTINGS/edit?r=carol' });
+  const bob = w.submitOrg(newOrg('Bob Org', 'bob@org.test'));
+  const carol = w.submitOrg(newOrg('Carol Org', 'carol@org.test'));
+  const ask = (email) => { const m = w.mark(); w.lookup(email); return w.since(m); };
+
+  let d = ask('alice@org.test');
+  check('listing only: one email, the listing, no "Organization profile"', d.mails.length === 1 && d.mails[0].to === 'alice@org.test' &&
+    /Alice Org – Alice Camp/.test(d.mails[0].body) && !/Organization profile/.test(d.mails[0].body));
+  d = ask('bob@org.test');
+  check('organization only: "Bob Org – Organization profile" with its link', d.mails.length === 1 && d.mails[0].to === 'bob@org.test' &&
+    d.mails[0].body.includes('Bob Org – Organization profile') && d.mails[0].body.includes(bob.getEditResponseUrl()), d.mails[0] && d.mails[0].body);
+  d = ask('carol@org.test');
+  check('both: ONE email holding the listing and the profile', d.mails.length === 1 && /Carol Org – Carol Club/.test(d.mails[0].body) &&
+    d.mails[0].body.includes('Carol Org – Organization profile') && d.mails[0].body.includes(carol.getEditResponseUrl()));
+  d = ask('dave@org.test');
+  check('neither: staff are told, dave gets nothing', d.mails.length === 1 && d.mails[0].to === 'philliptrah2015@gmail.com' && /unknown email/.test(d.mails[0].subj));
+  // An organization row with an email but no link yet.
+  const noLink = Array.from({ length: SHOW_COL }, () => '');
+  noLink[0] = T(9); noLink[1] = 'Erin Org'; noLink[EMAIL_COL - 1] = 'erin@org.test';
+  tab.rows.push(noLink);
+  d = ask('erin@org.test');
+  check('org row missing its link: staff told to run backfillOrgs, erin gets nothing', d.mails.length === 1 && d.mails[0].to === 'philliptrah2015@gmail.com' &&
+    /Organizations row\(s\) \d+/.test(d.mails[0].body) && /backfillOrgs/.test(d.mails[0].body), d.mails.map((x) => x.to + ': ' + x.body.split('\n')[0]).join(' | '));
+  // A hand-typed organization row is never offered.
+  const handOrg = Array.from({ length: SHOW_COL }, () => '');
+  handOrg[1] = 'Frank Org'; handOrg[EMAIL_COL - 1] = 'frank@org.test'; handOrg[LINK_COL - 1] = 'not a real link';
+  tab.rows.push(handOrg);
+  d = ask('frank@org.test');
+  check('hand-typed org row: frank gets nothing, staff get the no-match note', d.mails.length === 1 && d.mails[0].to === 'philliptrah2015@gmail.com');
+  check('the lookup wrote nothing anywhere', !w.log.writes.slice(-50).some((x) => /Link Requests!|Activities!/.test(x)));
+}
+
+console.log('\n# 17. Activities and Link Requests behave exactly as before');
+{
+  const masterCode = require('child_process').execSync('git show master:apps-script/Code.gs', { cwd: REPO }).toString();
+  const scenario = (w) => {
+    const T = (s) => new Date(Date.UTC(2026, 9, 1, 10, 0, s));
+    w.listingResponse(T(0), 'a@org.test', 'https://forms.test/F-LISTINGS/edit?r=A');
+    w.listingRow({ ts: T(0), org: 'Org A', prog: 'Prog A', email: 'a@org.test' });                  // no link yet
+    const hand = w.listingRow({ org: 'Hand Org', prog: 'Hand Prog', email: 'alice@org.test', link: 'see staff note' });
+    w.listingResponse(T(1), 'alice@org.test', 'https://forms.test/F-LISTINGS/edit?r=B');
+    const edited = w.listingRow({ ts: T(1), org: 'Org B', prog: 'Prog B', email: 'alice@org.test', link: 'https://forms.test/F-LISTINGS/edit?r=B' });
+    w.g.backfillEditLinks();                                       // fills Org A
+    w.fire(w.activities, hand);                                    // hand-typed: nothing
+    w.fire(w.activities, edited);                                  // edited listing: staff email
+    w.submitListing({ org: 'Org C', prog: 'Prog C', email: 'c@org.test' }); // new: link + thank-you
+    w.lookup('alice@org.test');                                    // her listing link
+    w.lookup('nobody@org.test');                                   // staff no-match
+    return JSON.stringify({ writes: w.log.writes, mails: w.log.mailFull });
+  };
+  const before = scenario(world({ codeSource: masterCode })), after = scenario(world());
+  check('without an Organizations tab: identical writes and emails to master\'s Code.gs', before === after);
+  const parsed = JSON.parse(after);
+  check('...and that scenario really exercises them (link written, thank-you, edit notice, lookup, no-match)',
+    parsed.writes.some((x) => x.startsWith(`Activities!R2C${ACT.link} `)) &&
+    parsed.mails.some((x) => /Thanks for submitting Prog C/.test(x.subj)) && parsed.mails.some((x) => /Listing edited: Org B/.test(x.subj)) &&
+    parsed.mails.some((x) => x.to === 'alice@org.test') && parsed.mails.some((x) => /unknown email/.test(x.subj)), JSON.stringify(parsed.mails.map((x) => x.subj)));
+  const orgBefore = scenario(orgWorld({ codeSource: masterCode })), orgAfter = scenario(orgWorld());
+  check('with the Organizations tab and its 43 backfilled rows: still identical', orgBefore === orgAfter);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

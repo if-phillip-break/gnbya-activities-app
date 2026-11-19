@@ -12,8 +12,17 @@
  * It never touches the Show on site column. Approving a listing stays a staff
  * decision.
  *
+ * On every Organizations form submission (that form and tab are made by
+ * OrgForm.gs; its columns are found by header, not letter):
+ *   - writes the response's edit link into the tab's Edit link column
+ *   - new profile  -> thanks the listing manager, tells staff it's waiting
+ *                     for approval
+ *   - edited one   -> tells staff the organization changed
+ *   - no listing manager email (one of the backfilled rows) -> nothing at all
+ *
  * On every "Get my listing links" submission (a second form, same trigger):
- *   - address manages listings -> emails that address its edit links
+ *   - address manages listings or organization profiles -> emails that
+ *     address its edit links
  *   - it doesn't               -> emails staff; the person asking gets nothing
  *     (the form's confirmation is the same either way)
  *
@@ -100,6 +109,42 @@ const LOOKUP_NO_MATCH_BODY =
 // can't be used to flood someone's inbox (or staff's). 0 turns this off.
 const LOOKUP_COOLDOWN_MINUTES = 10;
 
+// ----- Organizations form -----
+
+// The tab name (ORG_TAB_NAME) and the Edit link header (ORG_EDIT_LINK_HEADER)
+// come from OrgForm.gs, which made that form and tab. Columns there are found
+// by these row-1 headers, not by letter.
+const ORG_NAME_HEADER = "Organization name";
+const ORG_MANAGER_EMAIL_HEADER = "Listing manager email";
+const ORG_STATUS_HEADER = "Organization status";
+
+// Email wording. Placeholders: {organization} {editLink} {sheetLink} {row} {status}
+const ORG_NEW_SUBJECT = "Thanks for adding {organization} to the GNBYA Activities Guide";
+const ORG_NEW_BODY =
+  "Thank you for adding {organization} to the GNBYA Activities Guide.\n\n" +
+  "Our staff will review it before it appears on the site.\n\n" +
+  "To update your organization's profile at any time, use this link (keep it, it's unique to your organization):\n" +
+  "{editLink}\n\n" +
+  "GNBYA";
+
+const ORG_WAITING_SUBJECT = "New organization waiting for approval: {organization}";
+const ORG_WAITING_BODY =
+  "{organization} submitted an organization profile.\n\n" +
+  "Review the row in the sheet (row {row}), and tick Show on site to publish it:\n" +
+  "{sheetLink}";
+
+const ORG_EDITED_SUBJECT = "Organization edited: {organization}";
+const ORG_EDITED_BODY =
+  "{organization} edited their organization profile.\n\n" +
+  "Organization status: {status}\n\n" +
+  "Review the row in the sheet (row {row}):\n" +
+  "{sheetLink}\n\n" +
+  "If it's already ticked Show on site, the edit is already live on the site. " +
+  "\"Remove from site\" takes it off the site straight away.";
+
+// How organization profiles are labelled in "Get my listing links" emails.
+const ORG_LOOKUP_LABEL = "Organization profile";
+
 // =====================================================================
 // Below here is the code. You shouldn't need to change anything.
 // =====================================================================
@@ -129,6 +174,8 @@ function handleFormSubmit(e) {
     const name = e.range.getSheet().getName();
     if (name === RESPONSES_SHEET_NAME) handleListingSubmit_(e);
     else if (name === LOOKUP_SHEET_NAME) handleLookupSubmit_(e);
+    // typeof, so listings and lookups keep working if OrgForm.gs is ever removed.
+    else if (typeof ORG_TAB_NAME !== "undefined" && name === ORG_TAB_NAME) handleOrgSubmit_(e);
     // Any other linked form: not ours.
   } finally {
     lock.releaseLock();
@@ -174,6 +221,74 @@ function handleListingSubmit_(e) {
 }
 
 /**
+ * An organization profile was submitted or edited. Same shape as a listing,
+ * but columns are found by header, and it never reads or writes Show on site.
+ */
+function handleOrgSubmit_(e) {
+  const sheet = e.range.getSheet();
+  const row = e.range.getRow();
+  const cols = orgColumns_(sheet);
+  if (isHandTyped_(sheet.getRange(row, cols.timestamp || 1).getValue())) {
+    Logger.log("Organizations row " + row + " has no Timestamp (typed in by hand): left alone.");
+    return;
+  }
+  if (!cols.email) {
+    notifyProblem_('Nothing was done for Organizations row ' + row + ': the tab has no "' +
+      ORG_MANAGER_EMAIL_HEADER + '" column. Was the question renamed?', sheet, row);
+    return;
+  }
+  // The backfilled organizations have no email (the CSV had none). This is
+  // checked before anything that could write, email or throw, so their
+  // submissions stay silent even before the Edit link column exists.
+  const to = String(sheet.getRange(row, cols.email).getValue()).trim();
+  if (to === "") {
+    Logger.log("Organizations row " + row + " has no listing manager email (a backfilled organization): nothing done.");
+    return;
+  }
+  if (!cols.link) {
+    notifyProblem_('Nothing was written for Organizations row ' + row + ': the tab has no "' +
+      ORG_EDIT_LINK_HEADER + '" column.', sheet, row);
+    return;
+  }
+  const formUrl = sheet.getFormUrl();
+  if (!formUrl) {
+    notifyProblem_('Nothing was written for Organizations row ' + row + ": the tab isn't linked to a form.", sheet, row);
+    return;
+  }
+
+  const editCell = sheet.getRange(row, cols.link);
+  const hadLink = String(editCell.getValue()).trim() !== "";
+  const cell = (col) => (col ? String(sheet.getRange(row, col).getValue()).trim() : "");
+  const values = {
+    organization: cell(cols.name) || "(no organization name)",
+    status: cell(cols.status) || "(blank)",
+    row: row,
+    sheetLink: sheetLink_(sheet, row),
+  };
+
+  const response = findResponseForRow_(sheet, row, formResponsesIndex_(formUrl), cols.email);
+  if (!response) {
+    // As for listings: an edited row keeps its link, a new one needs fixing by hand.
+    if (!hadLink) notifyProblem_("Couldn't match Organizations row " + row + " to a form response, so no edit link was written.", sheet, row);
+    return;
+  }
+  values.editLink = response.getEditResponseUrl();
+  editCell.setValue(values.editLink);
+
+  if (hadLink) {
+    MailApp.sendEmail(STAFF_EMAIL, fill_(ORG_EDITED_SUBJECT, values), fill_(ORG_EDITED_BODY, values));
+    return;
+  }
+  if (isEmail_(to)) {
+    MailApp.sendEmail(to, fill_(ORG_NEW_SUBJECT, values), fill_(ORG_NEW_BODY, values));
+  } else {
+    notifyProblem_("Organizations row " + row + " has no valid listing manager email (\"" + to + "\"), so the thank-you wasn't sent.", sheet, row);
+  }
+  // Staff hear about it either way: it's waiting behind Show on site.
+  MailApp.sendEmail(STAFF_EMAIL, fill_(ORG_WAITING_SUBJECT, values), fill_(ORG_WAITING_BODY, values));
+}
+
+/**
  * Someone asked for their listing links. Read-only: writes nothing to either
  * tab. Links only ever go to the address that was asked about, and the person
  * asking sees the same confirmation either way, so the form can't be used to
@@ -200,15 +315,23 @@ function handleLookupSubmit_(e) {
     link: columnIndex_(sheet, EDIT_LINK_COLUMN),
   }, requester);
 
+  const orgs = findOrgProfilesForEmail_(requester);
+
   if (result.missingLinkRows.length) {
     notifyProblem_(requester + " asked for their listing links, but row(s) " +
       result.missingLinkRows.join(", ") + " have no Edit link, so they were left out. " +
       "Run backfillEditLinks, then send those links by hand.", sheet, null);
   }
-  if (result.listings.length) {
-    const lines = result.listings.map((l) => fill_(LOOKUP_LINE, l)).join("\n");
+  if (orgs && orgs.missingLinkRows.length) {
+    notifyProblem_(requester + " asked for their listing links, but Organizations row(s) " +
+      orgs.missingLinkRows.join(", ") + " have no Edit link, so they were left out. " +
+      "Run backfillOrgs, then send those links by hand.", orgs.sheet, null);
+  }
+  const found = result.listings.concat(orgs ? orgs.listings : []);
+  if (found.length) {
+    const lines = found.map((l) => fill_(LOOKUP_LINE, l)).join("\n");
     MailApp.sendEmail(requester, LOOKUP_SUBJECT, fill_(LOOKUP_BODY, { listings: lines }));
-  } else if (!result.missingLinkRows.length) {
+  } else if (!result.missingLinkRows.length && !(orgs && orgs.missingLinkRows.length)) {
     MailApp.sendEmail(STAFF_EMAIL, fill_(LOOKUP_NO_MATCH_SUBJECT, { requester: requester }),
       fill_(LOOKUP_NO_MATCH_BODY, { requester: requester, sheetLink: sheetLink_(sheet, null) }));
   }
@@ -241,6 +364,33 @@ function findListingsForEmail_(values, cols, email) {
     });
   }
   return { listings: listings, missingLinkRows: missingLinkRows };
+}
+
+/**
+ * Organization profiles managed by `email`, for the lookup: the same search as
+ * listings, over the Organizations tab, labelled "Organization profile". Null
+ * when there's no Organizations tab. A missing column never stops listing links
+ * going out: staff are told, and organizations are left out of that email.
+ */
+function findOrgProfilesForEmail_(email) {
+  if (typeof ORG_TAB_NAME === "undefined") return null;
+  const sheet = SpreadsheetApp.getActive().getSheetByName(ORG_TAB_NAME);
+  if (!sheet) return null;
+  const cols = orgColumns_(sheet);
+  if (!cols.email || !cols.link) {
+    notifyProblem_('The "' + ORG_TAB_NAME + '" tab has no "' +
+      (cols.email ? ORG_EDIT_LINK_HEADER : ORG_MANAGER_EMAIL_HEADER) +
+      '" column, so organization profiles were left out of a listing-links lookup.', sheet, null);
+    return null;
+  }
+  const result = findListingsForEmail_(sheet.getDataRange().getValues(), {
+    timestamp: (cols.timestamp || 1) - 1,
+    email: cols.email - 1,
+    link: cols.link - 1,
+  }, email);
+  result.listings.forEach((l) => (l.program = ORG_LOOKUP_LABEL));
+  result.sheet = sheet;
+  return result;
 }
 
 // True if this address may get a lookup email now (and starts its cooldown).
@@ -284,9 +434,9 @@ function backfillEditLinks() {
 
 // Form responses grouped by timestamp to the second. That's the precision the
 // sheet keeps, and an edit updates the response's timestamp and the row's
-// together, so they still line up after an edit.
-function formResponsesIndex_() {
-  const form = FormApp.openByUrl(responsesFormUrl_());
+// together, so they still line up after an edit. With no URL, the listings form.
+function formResponsesIndex_(formUrl) {
+  const form = FormApp.openByUrl(formUrl || responsesFormUrl_());
   const index = {};
   form.getResponses().forEach((r) => {
     const key = Math.floor(r.getTimestamp().getTime() / 1000);
@@ -295,7 +445,9 @@ function formResponsesIndex_() {
   return index;
 }
 
-function findResponseForRow_(sheet, row, index) {
+// `emailCol` (1-based) names the manager email column for the tie-break; left
+// out, it's the listings tab's MANAGER_EMAIL_COLUMN.
+function findResponseForRow_(sheet, row, index, emailCol) {
   const ts = sheet.getRange(TIMESTAMP_COLUMN + row).getValue();
   const date = ts instanceof Date ? ts : new Date(ts);
   if (isNaN(date.getTime())) return null;
@@ -306,13 +458,31 @@ function findResponseForRow_(sheet, row, index) {
   // Two responses landed in the same second: break the tie on the listing
   // manager email. If that still doesn't settle it, return nothing rather
   // than guess, because a wrong guess sends someone else's edit link.
-  const header = headerAt_(sheet, MANAGER_EMAIL_COLUMN);
-  const email = String(sheet.getRange(MANAGER_EMAIL_COLUMN + row).getValue()).trim().toLowerCase();
+  const header = emailCol
+    ? String(sheet.getRange(1, emailCol).getValue()).trim()
+    : headerAt_(sheet, MANAGER_EMAIL_COLUMN);
+  const emailCell = emailCol ? sheet.getRange(row, emailCol) : sheet.getRange(MANAGER_EMAIL_COLUMN + row);
+  const email = String(emailCell.getValue()).trim().toLowerCase();
   const matches = candidates.filter((r) =>
     r.getItemResponses().some((ir) =>
       sameHeader_(ir.getItem().getTitle(), header) &&
       String(ir.getResponse()).trim().toLowerCase() === email));
   return matches.length === 1 ? matches[0] : null;
+}
+
+// 1-based columns on the Organizations tab, found by row-1 header (OrgForm.gs
+// decides that layout, so letters would drift). A missing header comes back as
+// 0. Show on site is deliberately not looked up: this script never touches it.
+function orgColumns_(sheet) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const at = (name) => headers.findIndex((h) => sameHeader_(h, name)) + 1;
+  return {
+    timestamp: at("Timestamp"),
+    name: at(ORG_NAME_HEADER),
+    email: at(ORG_MANAGER_EMAIL_HEADER),
+    status: at(ORG_STATUS_HEADER),
+    link: at(ORG_EDIT_LINK_HEADER),
+  };
 }
 
 // Headers are compared ignoring capitals and extra spaces: "Show on Site" is

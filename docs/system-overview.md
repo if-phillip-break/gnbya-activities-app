@@ -159,7 +159,7 @@ it lives in the repo only so there is a record of it. Its settings are for the
 **production** intake spreadsheet, and staff notices go to
 `philliptrah2015@gmail.com` (`STAFF_EMAIL`). Committing it here does not install
 it: someone has to paste it into the production spreadsheet's Apps Script
-editor and run `setup()` once. It does three jobs off one
+editor and run `setup()` once. It does these jobs off one
 installable "on form submit" trigger, routing on which tab the response landed
 in:
 
@@ -169,10 +169,14 @@ in:
 2. **Existing listing edited** (an org used its edit link) → refreshes the link
    and emails staff that the listing changed, with a link to the row.
 3. **"Get my listing links" form** (a second form, `Link Requests`) → if the
-   address entered manages any listings, emails that address all its edit links;
-   if it manages none, emails *staff* instead. The person asking sees the same
-   confirmation either way, so the form cannot be used to discover which
-   addresses have listings. One email per address per 10 minutes.
+   address entered manages any listings or organization profiles, emails that
+   address all its edit links in one message (profiles are labelled
+   "Organization profile"); if it manages none, emails *staff* instead. The
+   person asking sees the same confirmation either way, so the form cannot be
+   used to discover which addresses have listings. One email per address per 10
+   minutes.
+4. **Organization submitted or edited** (the `Organizations` tab) → the same
+   pattern as listings, described under Organizations below.
 
 What it deliberately refuses to do:
 
@@ -246,11 +250,21 @@ The FILTER-range gotcha above applies here too: after any change to the
 Organizations form, re-check that the FILTER still covers the 16 public columns
 and still points at `Show on site` and `Organization status`.
 
-**Not handled yet (follow-up C):** `Code.gs` deliberately ignores the
-Organizations tab, so a new or edited organization response gets no edit link
-written, no thank-you, and no staff notice; with an approval gate in front of
-the site, nobody is told a new organization is waiting. The "Get my listing
-links" lookup searches program listings only. See §12.
+**What `Code.gs` does with an organization response.** It finds the tab's
+columns by header (OrgForm.gs owns that layout), and never reads or writes
+`Show on site`:
+
+- **New** → writes the response's edit link into its row, thanks the listing
+  manager with that link (noting staff review it before it appears), and
+  emails staff "New organization waiting for approval" with a link to the row.
+- **Edited** → refreshes the link and emails staff "Organization edited", with
+  its current Organization status and a link to the row. If it's already
+  approved, the edit is live at once; "Remove from site" takes it off at once.
+- **No listing manager email** → nothing at all, to anyone. That is what the 43
+  backfilled rows look like, and it is checked before anything that could
+  write, email or fail.
+- Rows with no Timestamp are left alone; an unmatched new row, a missing column
+  or an unlinked tab gets a staff problem email instead of a guess.
 
 ### Loading behavior
 
@@ -646,14 +660,13 @@ candidates.
    free text written for humans.
 12. **No sort control.** Closed listings sink; nothing else is ordered. Sorting by
    start date needs real date columns.
-13. **New organization submissions go unnoticed.** `Code.gs` ignores the
-   Organizations tab, so a new or edited response gets no edit link, no
-   thank-you and no staff email, and the "Get my listing links" lookup cannot
-   find organization links. With `Show on site` in front of the site, a new
-   organization waits for approval that nobody knows to give. Planned as
-   follow-up C: route the tab in `Code.gs` like listings (treating a blank
-   email as a backfill row, so the 43 backfilled responses stay quiet) and
-   extend the lookup to search it by header.
+13. **The 43 backfilled organizations have edit links but no manager email.**
+   Nobody has been sent those links, and the "Get my listing links" lookup can't
+   find them, because it matches on that email. Staff have to send each link
+   by hand from the Organizations tab's `Edit link` column. Once an
+   organization edits its profile, the form makes it add an email, and from
+   then on it behaves like any other: the lookup finds it, and staff hear about
+   every edit.
 14. **No deep links.** Filter state and the active tab live only in memory — there
    is no URL state, so a parent cannot share "free programs for a 9-year-old".
 15. **No analytics.** Nothing records what parents search for or filter by, so
