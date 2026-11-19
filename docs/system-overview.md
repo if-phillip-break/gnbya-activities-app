@@ -4,7 +4,9 @@ A complete description of what this tool is, what data it holds, and exactly how
 it behaves. Written to be handed to someone (or some agent) with no prior context
 who needs to reason about new features.
 
-Accurate as of 2026-10-24, commit `f3be4fd`.
+Accurate as of 2026-11-18, commit `811b3c0` on the `forms-v2` branch (not yet
+merged to `master` or deployed). Section 11's data was read from the production
+feed on that date.
 
 ---
 
@@ -53,6 +55,8 @@ js/csv.js               CSV parser (quoted cells, embedded commas and newlines)
 js/data.js              Source URLs, CSV record -> app object mapping, category
                         taxonomy, session-date parsing
 js/app.js               State, filtering, rendering, all UI behavior
+apps-script/Code.gs     Google Apps Script that runs inside the intake spreadsheet
+                        (edit links, emails). The site never loads it; see §4
 data/                   Reference copies of both datasets + raw source CSV
 docs/field-guide.md     Staff-facing column reference (what to type in the sheet)
 docs/form-intake-setup.md     How Form -> Sheet -> approval -> site is wired
@@ -142,6 +146,45 @@ shifts letters. When this is wrong, **listings silently vanish or cards go blank
 rather than erroring**. Any feature that depends on a new column must budget for
 this step.
 
+### The intake Apps Script (edit links and emails)
+
+`apps-script/Code.gs` runs **inside the intake spreadsheet**, not on the site;
+it lives in the repo only so there is a record of it. It is currently bound to
+the **test** intake spreadsheet, not production. It does three jobs off one
+installable "on form submit" trigger, routing on which tab the response landed
+in:
+
+1. **New listing submitted** → writes that response's Google Forms *edit link*
+   into the `Edit link` column, and emails the listing manager a thank-you with
+   that link ("keep it, it's unique to your listing").
+2. **Existing listing edited** (an org used its edit link) → refreshes the link
+   and emails staff that the listing changed, with a link to the row.
+3. **"Get my listing links" form** (a second form, `Form Responses 2`) → if the
+   address entered manages any listings, emails that address all its edit links;
+   if it manages none, emails *staff* instead. The person asking sees the same
+   confirmation either way, so the form cannot be used to discover which
+   addresses have listings. One email per address per 10 minutes.
+
+What it deliberately refuses to do:
+
+- **It never writes `Show on site`.** Approval stays a staff decision.
+- **It checks row-1 headers before writing.** Column letters are hard-coded
+  (manager email `W`, `Show on site` `AA`, `Edit link` `AB`); if a form change
+  shifts columns and the expected headers are no longer there, it stops and
+  emails staff rather than writing into the wrong column.
+- **It will not guess a match.** A sheet row is matched to its form response by
+  timestamp; if two responses share a second, it breaks the tie on the manager
+  email, and if that still is not unique it writes nothing, because a wrong
+  guess would send someone else's edit link.
+
+`setup()` installs the trigger once; `backfillEditLinks()` fills links for rows
+that predate the script, without sending email.
+
+**Consequence worth knowing:** an edit made through an edit link updates the
+same sheet row. If that row is already ticked `Show on site`, **the edit is live
+on the site at once, with no re-approval**. The staff email says so. Staff are
+told, but they are not asked.
+
 ### Organizations
 
 Currently read from a **local file** (`data/organizations_placeholder_sheet.csv`),
@@ -189,7 +232,9 @@ instead of going blank on whichever half has not caught up.
 | `isFree` | `Is the program free?` if present, **else a `/\bfree\b/i` regex on the cost text** | Drives the Free filter |
 | `scholarships` | `Scholarships Provided?` if present, **else a regex on the cost text** for scholarship / financial aid / sliding scale | Drives the Financial aid filter |
 | `address` | `Address` | |
-| `busAccessible` | `Transportation Accessible?`, `Bus Accessible?` | Yes / TRUE / Y / X all count as true |
+| `busAccessible` | `How can kids get to this program?`, `Transportation Accessible?`, `Bus Accessible?` | True when the answer contains "near a/an SRTA bus route", **or** is a legacy Yes / TRUE / Y / X. Drives the Bus accessible filter |
+| `schoolPickup` | same transport answer | True when it contains "pick(s) kids up from school". Badge only; there is no filter for it |
+| `notRunning` | `Listing status` | Staff-set. True only for the exact answer "Not running this season"; blank or "Active" is a normal listing. **See §12: production's header is `Listing Status`** |
 | `nearestBusRoute` | `Nearest Bus Route/Stop` | Parsed but not shown on the card |
 | `staffLanguageSupport` | `Translation Available?`, `Staff Language Support` | |
 | `translationAvailable` | `Languages Provided`, `Translation Available` | Comma-separated list |
@@ -200,6 +245,21 @@ instead of going blank on whichever half has not caught up.
 Free and financial aid are **separate flags on purpose**: a $300 camp with
 scholarships is not free, but it is not out of reach either, and collapsing the
 two hid that from exactly the parents who needed to see it.
+
+**Transport is on its third generation of question.** `Bus Accessible?` became
+`Transportation Accessible?` (both Yes/No), which became a checkbox list,
+`How can kids get to this program?`, with answers such as "The organization is
+near a SRTA bus route", "The organization picks kids up from school", and "The
+organization picks kids up from home/another location". Several boxes can be
+ticked, so one answer can make a listing both bus accessible and school pickup.
+The app matches **key phrases, not whole option labels**, because the wording has
+already shifted once ("We pick kids up" became "The organization picks kids up",
+"an SRTA" became "a SRTA") and an exact match went silently false. A legacy
+Yes still counts as bus access. Home/other-location pickup is not read into any
+flag today.
+
+The form also now asks `Do staff speak other languages?`. **The app does not read
+that column**; language support still comes from the two older columns above.
 
 ### Organization object
 
@@ -282,11 +342,14 @@ would win outright if they existed, and the parsing would not run.
 
 | Derived | Rule | Effect in the UI |
 |---|---|---|
+| **Not running** | staff set `Listing status` to "Not running this season" | Card greyed, **Not running this season** badge, sorted to the bottom |
 | **Ended** | every parsed range ends before today; a listing with no parsed ranges is never ended | Card greyed, **Session ended** badge, sorted to the bottom |
 | **At capacity** | regex over `Session Dates`, `Cost` and `Description` for `filled`, `no availabilit`, `at capacity`, `sold out`, `no openings/spots/space/slots/vacancies`, `wait list only`, `registration closed` | Card greyed, **Currently full** badge, sorted to the bottom |
 | **Archived** | out of summer season AND the listing is a summer listing | Card greyed, **Summer &lt;year&gt;** badge, action link becomes *Visit website* |
 | **Free** | `isFree` flag | **Free** badge; matched by the Free toggle |
 | **Has aid** | `scholarships` flag | **Financial aid** badge (only when not already free) |
+| **Bus accessible** | `busAccessible` flag (§5) | **Bus accessible** badge; matched by the toggle |
+| **School pickup** | `schoolPickup` flag (§5) | **School pickup** badge. Not filterable |
 | **Language support** | staff language text that is not "no", OR a non-empty translation list | **Language support** badge; matched by the toggle |
 
 The capacity regex **deliberately does not match a bare "full"** — the sheet is
@@ -294,8 +357,13 @@ full of "Full summer", "Full day" and "Full Year", and greying out a program tha
 has space costs an organization enrolments. Missing a full one only costs a
 parent a click they would have made anyway.
 
-Badge precedence on a card: ended > full > archived (only one of the three
-shows), then Free *or* Financial aid, then Bus accessible, then Language support.
+"Not running" is the one status that comes from a staff decision rather than an
+inference, so it **outranks everything the app works out from dates and free
+text**.
+
+Badge precedence on a card: not running > ended > full > archived (only one of
+the four shows), then Free *or* Financial aid, then Bus accessible, then School
+pickup, then Language support.
 
 ---
 
@@ -341,7 +409,8 @@ half-finished range.
 
 ### Sorting
 
-Program tabs sort **closed listings (ended or full) to the bottom**, so a parent
+Program tabs sort **closed listings (not running, ended, or full) to the
+bottom**, so a parent
 scanning hits everything still joinable first. The sort is stable, so the sheet's
 own order survives inside each group. There is no other sort — sorting by start
 date is explicitly blocked on having real date columns, because you cannot
@@ -417,31 +486,42 @@ actually set. The empty state offers the same button.
 
 ---
 
-## 11. What is actually in the data today (2026-10-24)
+## 11. What is actually in the data today (2026-11-18, production feed)
 
 **28 programs** (6 Current, 22 Summer) and **43 organizations**.
 The Summer tab is currently in archive mode, labelled "Summer 2026 · finished".
 
+The production sheet now publishes **23 columns**, up from 18. Alongside the
+originals it carries `Program Enrollment Cost`, `Scholarships Provided?`,
+`Is the program free?`, `Activity type`, `Listing Status` and
+`Do staff speak other languages?`. It still uses `Bus Accessible?`, not the new
+transport checkbox question. The test feed (30 programs, 8 Current) already has
+`How can kids get to this program?` and `Listing status`.
+
 The six Current Activities listings:
 
-| Program | Organization | Ages | Cost | Dates (as written) | State |
-|---|---|---|---|---|---|
-| Learn to Ride | Youth Opportunities Unlimited | 7–14 | $80/week, scholarships available | 4 clinics, Sept 14 → Oct 8 | parsed as ended |
-| School-Time SPARK | Our Sisters' School | "3rd, 4th, 5th grade girls" (no numbers) | blank | Mondays Nov 2–Dec 7 or Tuesdays Jan 26–Mar 9 | open |
-| SuperART | Zeiterion Theatre | 11–14 | blank | Tuesdays 9/29–11/17 | open |
-| Teen Ambassador | The Zeiterion Theatre | 13–19 | blank | "Monthly sessions January to June" | parsed as ended |
-| Little Kids Basketball 3v3 | NB Parks, Recreation & Beaches | 5–10 | $130 (residents) | Saturdays 10/3–11/21 | open |
-| Girls Basketball Clinic | NB Parks, Recreation & Beaches | Grades 4–12 (9–18) | Free | Wednesdays 9/2–11/4 | open |
+| Program | Organization | Ages | Cost (as written) | Free flag | Dates (as written) | State today |
+|---|---|---|---|---|---|---|
+| Learn to Ride | Youth Opportunities Unlimited | 7–14 | $80/week, scholarships available | no (aid: yes) | 4 clinics, Sept 14 → Oct 8 | ended |
+| School-Time SPARK | Our Sisters' School | "3rd, 4th, 5th grade girls" (no numbers) | blank | **Yes** | Mondays Nov 2–Dec 7 or Tuesdays Jan 26–Mar 9 | open |
+| SuperART | Zeiterion Theatre | 11–14 | blank | **Yes** | Tuesdays 9/29–11/17 | ended |
+| Teen Ambassador | The Zeiterion Theatre | 13–19 | blank | **Yes** | "Monthly sessions January to June" | parsed as ended (§12) |
+| Little Kids Basketball 3v3 | NB Parks, Recreation & Beaches | 5–10 | $130 (residents) | **Yes — contradicts cost (§12)** | Saturdays 10/3–11/21 | open |
+| Girls Basketball Clinic | NB Parks, Recreation & Beaches | Grades 4–12 (9–18) | Free | from cost text | Wednesdays 9/2–11/4 | ended |
+
+Only **two** of the six are still joinable today; the other four are greyed and
+sorted to the bottom. No listing has a `Listing Status` value yet.
 
 Categories present on this tab: Sports & Recreation, Health & Wellness, Homework
 & Tutoring, Art, Science & Nature, Theater, Culture, Mentoring & Leadership,
 Music, Jobs & Career Skills.
 
 Every Current listing has a website; one (Girls Basketball Clinic) has no
-contact; three of six have no cost text at all. Descriptions range from 141 to
-1,288 characters.
+contact; three of six have no cost text at all, so their Cost cell shows "—"
+even when they are flagged free. Descriptions range from 141 to 1,288
+characters.
 
-**The thin Current Activities tab — six listings, several of them short clinics —
+**The thin Current Activities tab — six listings, two still joinable —
 is a partner-outreach problem, not a code problem.** No amount of UI work makes
 six listings feel like a directory. `docs/org-engagement-playbook.md` is the
 companion piece.
@@ -453,42 +533,68 @@ companion piece.
 These are real, verified against the live feed today. Several are good feature
 candidates.
 
-1. **The live sheet still carries the older generation of headers.** It publishes
-   `Cost`, `Bus Accessible?`, `Staff Language Support` and `Translation
-   Available` — *not* the newer `Is the program free?`, `Scholarships Provided?`,
-   `Transportation Accessible?` or `Program Enrollment Cost`. The fallbacks
-   described in §5 are what is actually running. Consequence: **free and
-   financial-aid status are being inferred from cost text by regex.**
-2. **Because of that, free programs can be missed by the Free filter.** SuperART's
-   description says it is a free program, but its `Cost` cell is blank, so
-   `isFree` is false and the Free toggle excludes it. Three of the six Current
-   listings have a blank cost and show "—" on the card. The fix is upstream (the
-   explicit Yes/No columns), not in the app.
-3. **The date parser assumes the current calendar year.** A listing written for a
+1. **"Not running this season" will not work on production as merged.** The code
+   reads the header `Listing status`; production publishes `Listing Status`
+   (capital S), and header matching is exact and case-sensitive (`rowsToRecords`
+   in `js/csv.js`). Verified: the same row with the value "Not running this
+   season" maps to `notRunning = true` under `Listing status` and `false` under
+   `Listing Status`. It does no harm today, because every production value is
+   still blank, but the first time staff use it, nothing will happen and nothing
+   will error. The test sheet uses the lowercase spelling, which is why testing
+   did not catch it. Fix: read it through `pick()` with both spellings, or
+   rename the production header.
+2. **An explicit Yes/No beats the cost text, even when they contradict.**
+   Production now fills `Is the program free?` for several listings, which fixed
+   the old problem of free programs with a blank cost being missed by the Free
+   filter (SuperART, School-Time SPARK and Teen Ambassador now match it). But
+   Little Kids Basketball 3v3 answers **Yes** while its cost reads "$130
+   (residents)", so the live card shows a **Free** badge beside $130 and the Free
+   filter includes it. This is a sheet fix. A feature idea follows from it:
+   flag rows whose Yes/No contradicts the cost text, for staff to review.
+3. **Financial aid is still inferred.** `Scholarships Provided?` exists on
+   production but every value is blank, so aid still comes from a regex over the
+   cost text. Only Learn to Ride ("scholarships available") matches among the
+   Current listings.
+4. **Production has not moved to the new transport question.** It still
+   publishes `Bus Accessible?`, so the legacy Yes fallback is what drives bus
+   access there, and **School pickup can never appear on production** until the
+   `How can kids get to this program?` column is published. School pickup is
+   also badge-only: a parent cannot filter for it.
+5. **`Do staff speak other languages?` is collected but ignored.** It is on both
+   feeds and no code reads it. (All values are blank today.)
+6. **Edits to approved listings go live without re-approval** (§4). Fine for
+   fixing a typo; it also means an organization can change a live listing's
+   content at any time, and staff find out only from an email.
+7. **The Apps Script is not production-ready as committed.** It is bound to the
+   test sheet, and `STAFF_EMAIL` is still the placeholder `staff@example.org`,
+   so every staff notification (edits, problems, unknown-address lookups) would
+   go nowhere until it is changed. Its hard-coded column letters must also be
+   re-checked against the production sheet, which has a different layout.
+8. **The date parser assumes the current calendar year.** A listing written for a
    previous year parses into this year, and a recurring annual program described
    as "Monthly sessions January to June" reads as January–June *this* year —
    which, late in the year, marks it **Session ended** and greys it. Teen
    Ambassador is in exactly this state today. There is no notion of a recurring
    or annual program.
-4. **No availability data.** Nothing says whether a program has spots. Capacity is
+9. **No availability data.** Nothing says whether a program has spots. Capacity is
    only detected when someone happens to type "filled" or "no availability" into
    a free-text field.
-5. **No registration dates.** A parent cannot tell that something opens in March
+10. **No registration dates.** A parent cannot tell that something opens in March
    rather than being bookable now.
-6. **No numeric cost**, so no cost slider and no "under $X" filter. `Cost` is
+11. **No numeric cost**, so no cost slider and no "under $X" filter. `Cost` is
    free text written for humans.
-7. **No sort control.** Closed listings sink; nothing else is ordered. Sorting by
+12. **No sort control.** Closed listings sink; nothing else is ordered. Sorting by
    start date needs real date columns.
-8. **Organizations are a local file**, so that tab does not update without a
+13. **Organizations are a local file**, so that tab does not update without a
    deploy until sheet sharing is enabled.
-9. **No deep links.** Filter state and the active tab live only in memory — there
+14. **No deep links.** Filter state and the active tab live only in memory — there
    is no URL state, so a parent cannot share "free programs for a 9-year-old".
-10. **No analytics.** Nothing records what parents search for or filter by, so
+15. **No analytics.** Nothing records what parents search for or filter by, so
     there is no evidence base for what to build next.
-11. **Expanded descriptions collapse on re-render.** Any filter change rebuilds
+16. **Expanded descriptions collapse on re-render.** Any filter change rebuilds
     the grid, so an opened description closes. Acceptable today; worth knowing.
-12. **`gnbyaMember` and `nearestBusRoute` are parsed but never displayed.**
-13. **The FILTER-range gotcha** in §4 is the single most likely way for this site
+17. **`gnbyaMember` and `nearestBusRoute` are parsed but never displayed.**
+18. **The FILTER-range gotcha** in §4 is the single most likely way for this site
     to break silently.
 
 ---
