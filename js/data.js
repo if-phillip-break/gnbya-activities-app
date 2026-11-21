@@ -45,6 +45,15 @@ function toNullableString(value) {
   return value === "" ? null : value;
 }
 
+// A website typed without its scheme ("discoverlpc.com") would be read by the
+// browser as a page on this site and lead nowhere, so add https:// to anything
+// that doesn't start with http:// or https://.
+function toWebsite(value) {
+  const url = (value || "").trim();
+  if (!url) return null;
+  return /^https?:\/\//i.test(url) ? url : "https://" + url;
+}
+
 function toNumberOrNull(value) {
   return value === "" || value === undefined ? null : Number(value);
 }
@@ -354,7 +363,7 @@ function mapRecordToProgram(record) {
     // so search still matches what staff actually typed.
     categories: toDisplayCategories(rawCategories),
     rawCategories,
-    website: toNullableString(record["Website"]),
+    website: toWebsite(record["Website"]),
     ageRange: {
       min: toNumberOrNull(record["Age Minimum"]),
       max: toNumberOrNull(record["Age Maximum"]),
@@ -406,7 +415,7 @@ function mapRecordToOrganization(record) {
   return {
     id: slugify(record["Organization name"]),
     name: record["Organization name"],
-    website: toNullableString(record["Website"]),
+    website: toWebsite(record["Website"]),
     minAge: toNumberOrNull(record["Min age"]),
     maxAge: toNumberOrNull(record["Max age"]),
     gradeLevels: toList(record["Grade levels served"]),
