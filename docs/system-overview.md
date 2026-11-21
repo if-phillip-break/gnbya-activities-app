@@ -142,6 +142,17 @@ anything the app fetches is downloadable by every visitor, so unapproved
 submissions (which contain people's contact details) must never reach the
 published CSV.
 
+**An inactive organization hides its activities.** The Live Activities FILTER
+also drops an activity whose organization is in the Organizations tab and is
+either unticked (`Show on site`) or marked "Remove from site". An activity whose
+organization *isn't* in that tab always shows. Nothing is ticked or unticked on
+the activity itself, so when the organization comes back, its activities come
+back with no re-approval. Names are matched exactly, ignoring case and stray
+spaces. That's why the Activities form's "Organization Name" is a multiple-choice
+list of the organizations (kept in sync by `syncActivityOrgChoices()` in
+`Code.gs`), with Google's "Other:" box for partners who aren't listed. An "Other"
+name matches nothing, so those activities always show.
+
 **The sharpest operational edge in the whole system:** the "Live Activities" tab is
 a `FILTER` formula over a *fixed column range*. Adding a column to the form does
 not flow through on its own. A new column requires (1) adding it in Form
@@ -176,7 +187,9 @@ in:
    used to discover which addresses have listings. One email per address per 10
    minutes.
 4. **Organization submitted or edited** (the `Organizations` tab) → the same
-   pattern as listings, described under Organizations below.
+   pattern as listings, described under Organizations below. Afterwards it
+   refreshes the Activities form's organization list (`syncActivityOrgChoices()`,
+   which can also be run by hand after a name is changed directly in the tab).
 
 What it deliberately refuses to do:
 

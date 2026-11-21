@@ -277,6 +277,7 @@ function handleOrgSubmit_(e) {
 
   if (hadLink) {
     MailApp.sendEmail(STAFF_EMAIL, fill_(ORG_EDITED_SUBJECT, values), fill_(ORG_EDITED_BODY, values));
+    syncActivityOrgChoices(); // the name may have changed
     return;
   }
   if (isEmail_(to)) {
@@ -286,6 +287,62 @@ function handleOrgSubmit_(e) {
   }
   // Staff hear about it either way: it's waiting behind Show on site.
   MailApp.sendEmail(STAFF_EMAIL, fill_(ORG_WAITING_SUBJECT, values), fill_(ORG_WAITING_BODY, values));
+  syncActivityOrgChoices();
+}
+
+/**
+ * Keeps the Activities form's "Organization Name" question listing every
+ * organization in the Organizations tab, sorted, plus Google's "Other" box for
+ * partners who aren't listed. Exact names are what let the Live Activities
+ * FILTER hide an inactive organization's activities.
+ *
+ * Runs after every organization submission or edit. Run it by hand after
+ * changing a name directly in the Organizations tab. Never writes to a sheet,
+ * and never throws: a problem is emailed to staff and the form is left alone.
+ */
+function syncActivityOrgChoices() {
+  const ss = SpreadsheetApp.getActive();
+  const activities = ss.getSheetByName(RESPONSES_SHEET_NAME);
+  const problem = (msg, sheet) => notifyProblem_("The Activities form's organization list wasn't updated: " + msg, sheet || activities, null);
+  if (typeof ORG_TAB_NAME === "undefined") return problem("OrgForm.gs isn't in this project.");
+  const orgSheet = ss.getSheetByName(ORG_TAB_NAME);
+  if (!orgSheet) return problem('there is no "' + ORG_TAB_NAME + '" tab.');
+  const nameCol = orgColumns_(orgSheet).name;
+  if (!nameCol) return problem('the "' + ORG_TAB_NAME + '" tab has no "' + ORG_NAME_HEADER + '" column.', orgSheet);
+
+  // Every name, hand-typed rows included; spaces tidied the way the sheet's
+  // TRIM tidies them, so the list and the FILTER agree on what a name is.
+  const lastRow = orgSheet.getLastRow();
+  const cells = lastRow < 2 ? [] : orgSheet.getRange(2, nameCol, lastRow - 1, 1).getValues();
+  const seen = {};
+  const names = [];
+  cells.forEach((r) => {
+    const name = String(r[0]).trim().replace(/\s+/g, " ");
+    if (name && !seen[name.toLowerCase()]) { seen[name.toLowerCase()] = true; names.push(name); }
+  });
+  if (!names.length) return problem('the "' + ORG_TAB_NAME + '" tab has no organization names.', orgSheet);
+  names.sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+
+  let item;
+  try {
+    item = FormApp.openByUrl(responsesFormUrl_()).getItems()
+      .find((i) => sameHeader_(i.getTitle(), ORGANIZATION_HEADER));
+  } catch (err) {
+    return problem("the Activities form couldn't be opened (" + err.message + ").");
+  }
+  if (!item) return problem('the Activities form has no "' + ORGANIZATION_HEADER + '" question.');
+  if (item.getType() !== FormApp.ItemType.MULTIPLE_CHOICE) {
+    return problem('"' + ORGANIZATION_HEADER + '" on the Activities form is a ' + item.getType() +
+      " question; it needs to be multiple choice with Other turned on.");
+  }
+  const question = item.asMultipleChoiceItem();
+  const current = question.getChoices().map((c) => c.getValue());
+  if (current.join("\n") === names.join("\n") && question.hasOtherOption()) {
+    Logger.log("Activities form organization list already matches (" + names.length + ").");
+    return;
+  }
+  question.setChoiceValues(names).showOtherOption(true);
+  Logger.log("Activities form organization list set to " + names.length + " organizations, plus Other.");
 }
 
 /**

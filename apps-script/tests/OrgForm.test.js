@@ -176,9 +176,28 @@ function world(opts = {}) {
     };
     f.api = api; forms['id:' + f.id] = f; return f;
   }
-  // The listings form: just enough for Code.gs to match rows to responses.
+  // The listings form: enough for Code.gs to match rows to responses, plus its
+  // "Organization Name" question. By default it's multiple choice as just
+  // converted in the editor (one placeholder option, no Other);
+  // opts.orgQuestionType = 'TEXT' leaves it a short answer.
+  const orgQ = { type: opts.orgQuestionType || 'MULTIPLE_CHOICE', choices: ['Option 1'], other: false };
+  log.formWrites = [];
+  const orgQTyped = {
+    getChoices: () => orgQ.choices.map((v) => ({ getValue: () => v })),
+    hasOtherOption: () => orgQ.other,
+    setChoiceValues: (vals) => { orgQ.choices = vals.slice(); log.formWrites.push('choices'); return orgQTyped; },
+    showOtherOption: (b) => { orgQ.other = b; log.formWrites.push('other=' + b); return orgQTyped; },
+  };
+  const orgQItem = {
+    getId: () => 9001, getTitle: () => 'Organization Name', getType: () => orgQ.type,
+    asMultipleChoiceItem: () => { if (orgQ.type !== 'MULTIPLE_CHOICE') throw new Error('Item is a ' + orgQ.type + ' item'); return orgQTyped; },
+    asTextItem: () => { if (orgQ.type !== 'TEXT') throw new Error('Item is a ' + orgQ.type + ' item'); return {}; },
+  };
   const listingForm = { responses: [] };
-  listingForm.api = { getId: () => 'F-LISTINGS', getResponses: () => listingForm.responses.map((r) => r.api) };
+  listingForm.api = {
+    getId: () => 'F-LISTINGS', getResponses: () => listingForm.responses.map((r) => r.api),
+    getItems: () => [{ getId: () => 9000, getTitle: () => 'Program Name', getType: () => 'TEXT' }, orgQItem],
+  };
   forms['https://forms.test/listings'] = listingForm;
   forms['https://forms.test/lookup'] = { api: { getId: () => 'F-LOOKUP' } };
 
@@ -254,6 +273,7 @@ function world(opts = {}) {
     SpreadsheetApp: { getActive: () => ss, flush: () => {} },
     FormApp: {
       DestinationType: { SPREADSHEET: 'SPREADSHEET' },
+      ItemType: { TEXT: 'TEXT', PARAGRAPH_TEXT: 'PARAGRAPH_TEXT', CHECKBOX: 'CHECKBOX', MULTIPLE_CHOICE: 'MULTIPLE_CHOICE' },
       create: (t) => { const f = makeForm(t); log.created = f; return f.api; },
       openById: (id) => forms['id:' + id].api,
       openByUrl: (u) => forms[u].api,
@@ -281,6 +301,7 @@ function world(opts = {}) {
   return {
     g, log, sheets, props, form: () => log.created, tab: () => sheets.find((s) => s.name === 'Organizations'),
     activities, linkRequests, fire, listingResponse, listingRow, submitListing, lookup, submitOrg, editOrg,
+    orgQ, // the Activities form's "Organization Name" question, for inspection
     // Paste a different OrgForm.gs into the same spreadsheet: same forms, tabs and
     // script properties, new code.
     reload: (src) => load({ ...services }, src),
@@ -675,6 +696,53 @@ console.log('\n# 17. Activities and Link Requests behave exactly as before');
     parsed.mails.some((x) => x.to === 'alice@org.test') && parsed.mails.some((x) => /unknown email/.test(x.subj)), JSON.stringify(parsed.mails.map((x) => x.subj)));
   const orgBefore = scenario(orgWorld({ codeSource: masterCode })), orgAfter = scenario(orgWorld());
   check('with the Organizations tab and its 43 backfilled rows: still identical', orgBefore === orgAfter);
+}
+
+console.log('\n# 18. The Activities form\'s organization list follows the Organizations tab');
+{
+  const csvNames = rowsToRecords(parseCSV(fs.readFileSync(REPO + 'data/organizations_placeholder_sheet.csv', 'utf8')).filter((r) => r.some((c) => c.trim())))
+    .map((r) => r['Organization name'].trim()).sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+  const inOrder = (a) => a.every((x, i) => i === 0 || a[i - 1].localeCompare(x, 'en', { sensitivity: 'base' }) <= 0);
+  const w = orgWorld();
+  check('the 43 backfilled rows do not touch the list', JSON.stringify(w.orgQ.choices) === '["Option 1"]' && w.log.formWrites.length === 0);
+  let m = w.mark();
+  const err = tryRun(() => w.g.syncActivityOrgChoices());
+  let d = w.since(m);
+  check('run by hand: all 43 names, sorted, with Other on', err === null && JSON.stringify(w.orgQ.choices) === JSON.stringify(csvNames) && w.orgQ.other === true, err || w.orgQ.choices.slice(0, 3).join(' | '));
+  check('...writing to no sheet and emailing nobody', d.writes.length === 0 && d.mails.length === 0, d.writes.join(' | ') + ' ' + d.mails.map((x) => x.subj).join(' | '));
+  const fw = w.log.formWrites.length;
+  tryRun(() => w.g.syncActivityOrgChoices());
+  check('run again with nothing changed: the form is not rewritten', w.log.formWrites.length === fw);
+
+  w.submitOrg(newOrg('Aardvark Arts', 'aa@org.test'));
+  check('a new organization joins the list, which stays in order', w.orgQ.choices.includes('Aardvark Arts') && w.orgQ.choices.length === 44 && inOrder(w.orgQ.choices), w.orgQ.choices.slice(0, 3).join(' | '));
+  w.editOrg(w.form().responses.length - 1, { 'Organization name': 'Zebra Arts' });
+  check('renaming it through its edit link replaces it in the list, still in order', !w.orgQ.choices.includes('Aardvark Arts') && w.orgQ.choices.includes('Zebra Arts') && w.orgQ.choices.length === 44 && inOrder(w.orgQ.choices), w.orgQ.choices.slice(-3).join(' | '));
+  // Staff typed names: a hand-typed row, and an untidy duplicate of one already there.
+  const tab = w.tab();
+  const hand = Array.from({ length: SHOW_COL }, () => ''); hand[1] = 'Hand Typed Partner';
+  const dup = Array.from({ length: SHOW_COL }, () => ''); dup[1] = '  buttonwood   park ZOO ';
+  tab.rows.push(hand, dup);
+  tryRun(() => w.g.syncActivityOrgChoices());
+  check('hand-typed organizations are included', w.orgQ.choices.includes('Hand Typed Partner'));
+  check('a name differing only in case or spaces is not listed twice', w.orgQ.choices.filter((c) => c.toLowerCase().replace(/\s+/g, ' ') === 'buttonwood park zoo').length === 1);
+  check('the sync never wrote to a sheet', !w.log.writes.some((x) => /Activities!|Live/.test(x)));
+
+  // Still a short answer on the form: staff are told, nothing changes, org handling carries on.
+  const w2 = orgWorld({ orgQuestionType: 'TEXT' });
+  m = w2.mark();
+  const e2 = tryRun(() => w2.submitOrg(newOrg('Short Answer Org', 'sa@org.test')));
+  d = w2.since(m);
+  check('short-answer question: no throw, the new org still gets its link and both emails', e2 === null &&
+    d.mails.some((x) => x.to === 'sa@org.test') && d.mails.some((x) => /waiting for approval/.test(x.subj)), e2);
+  check('...plus one staff problem email saying it needs to be multiple choice, and no form change', d.mails.filter((x) => /needs a look/.test(x.subj)).length === 1 &&
+    d.mails.some((x) => /needs to be multiple choice/.test(x.body)) && w2.log.formWrites.length === 0);
+  // No Organizations tab yet.
+  const w3 = world();
+  m = { mails: w3.log.mails.length };
+  const e3 = tryRun(() => w3.g.syncActivityOrgChoices());
+  check('no Organizations tab: no throw, staff told, form untouched', e3 === null && w3.log.mailFull.length === 1 &&
+    /no "Organizations" tab/.test(w3.log.mailFull[0].body) && w3.log.formWrites.length === 0, e3 || JSON.stringify(w3.log.mailFull.map((x) => x.body)));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

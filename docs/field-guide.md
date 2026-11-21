@@ -20,8 +20,12 @@ GNBYA staff who will be entering/editing listings.
 
 Always fill these in — the app or a parent depends on them directly.
 
-- **Organization name** — e.g. "Boys & Girls Club of New Bedford." Repeat in full on
-  every row for this org; no "same as above."
+- **Organization name** — picked from the list of organizations in the
+  Organizations tab; a partner that isn't listed chooses **Other** and types its
+  name. The name must match the Organizations entry exactly, because an
+  organization that is unticked or marked "Remove from site" hides its
+  activities too. On hand-typed rows, copy the name from the Organizations tab
+  rather than retyping it.
 - **Program name** — e.g. "Summer Fun Program." If one org runs two distinct activities
   (different ages, cost, or schedule), give each its own row — don't combine them.
 - **GNBYA member?** — Yes / No.
