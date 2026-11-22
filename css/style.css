@@ -1050,3 +1050,60 @@ body.sheet-lock { overflow: hidden; }
   .age-chips { flex: 1 1 auto; }
   .age-chip { flex: 1 1 auto; text-align: center; }
 }
+
+/* ---------------- Partner page (partners.html) ---------------- */
+/* One narrow column: the page is three choices, not a directory. 704px is a
+   640px column plus the container's 32px gutters; on a phone the column just
+   fills the width inside the usual 20px gutters. */
+.partner-header,
+.partner-main { max-width: 704px; }
+.partner-header { padding-top: 28px; padding-bottom: 24px; }
+.partner-intro { margin: 12px 0 0; font-size: 16px; color: var(--text-2); }
+.partner-main { padding-top: 28px; padding-bottom: 40px; }
+
+.partner-actions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* The whole card is the link, so the tap target is the full width and at
+   least 72px tall, well over the 44-48px a thumb needs. */
+.partner-action {
+  display: block;
+  min-height: 72px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1.5px solid var(--green);
+  border-radius: 14px;
+  color: var(--text);
+}
+.partner-action:hover { background: var(--subtle); border-color: var(--green-dark); color: var(--text); text-decoration: none; }
+.partner-action-title {
+  display: block;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--green);
+}
+/* Non-breaking space, so a wrapped title never leaves the arrow alone on a line. */
+.partner-action-title::after { content: "\00a0\2192"; }
+.partner-action-line { display: block; margin-top: 4px; font-size: 14.5px; line-height: 1.45; color: var(--text-2); }
+
+.partner-note {
+  margin: 22px 0 0;
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14.5px;
+  color: var(--text-2);
+}
+.partner-back { display: inline-block; margin-top: 22px; padding: 10px 0; font-weight: 600; }
+
+/* The main page's footer link to partners.html: quiet, like the line beside it,
+   with vertical padding so the tap area is ~40px though the text is 13px. */
+.footer-partner-link { display: inline-block; padding: 10px 0; font-size: 13px; }
