@@ -7,7 +7,8 @@
  *
  * What it does on every form submission:
  *   - writes the response's "edit your listing" link into the Edit link column
- *   - new listing  -> emails the listing manager their edit link
+ *   - new listing  -> emails the listing manager their edit link, and tells
+ *                     staff it's waiting for approval
  *   - edited one   -> emails staff that an organization changed its listing
  * It never touches the Show on site column. Approving a listing stays a staff
  * decision.
@@ -76,6 +77,13 @@ const EDITED_LISTING_BODY =
   "Review the row in the sheet (row {row}):\n" +
   "{sheetLink}\n\n" +
   "If it's already ticked Show on site, the edit is already live on the site.";
+
+// Sent to staff for every new activity: it's waiting behind Show on Site.
+const NEW_ACTIVITY_SUBJECT = "New activity waiting for approval: {organization} – {program}";
+const NEW_ACTIVITY_BODY =
+  "{organization} submitted {program}.\n\n" +
+  "Review the row in the sheet (row {row}), and tick Show on Site to publish it:\n" +
+  "{sheetLink}";
 
 // Sent to staff when the script can't do its job (no match, moved columns, ...).
 const PROBLEM_SUBJECT = "Activities Guide form script needs a look";
@@ -202,7 +210,10 @@ function handleListingSubmit_(e) {
   if (!response) {
     // An edited row already has its link, so losing the match is harmless.
     // A new row without a link has to be fixed by hand.
-    if (!hadLink) notifyProblem_("Couldn't match row " + row + " to a form response, so no edit link was written.", sheet, row);
+    if (!hadLink) {
+      notifyProblem_("Couldn't match row " + row + " to a form response, so no edit link was written.", sheet, row);
+      notifyNewActivity_(listing, sheet, row); // it's still waiting for approval
+    }
     return;
   }
   const editLink = response.getEditResponseUrl();
@@ -212,9 +223,11 @@ function handleListingSubmit_(e) {
     const to = String(sheet.getRange(MANAGER_EMAIL_COLUMN + row).getValue()).trim();
     if (!isEmail_(to)) {
       notifyProblem_("Row " + row + " has no valid listing manager email (\"" + to + "\"), so the thank-you wasn't sent.", sheet, row);
-      return;
+    } else {
+      sendTemplate_(to, NEW_LISTING_SUBJECT, NEW_LISTING_BODY, listing, editLink, sheet, row);
     }
-    sendTemplate_(to, NEW_LISTING_SUBJECT, NEW_LISTING_BODY, listing, editLink, sheet, row);
+    // Staff hear about it either way: it's waiting behind Show on Site.
+    notifyNewActivity_(listing, sheet, row);
   } else {
     sendTemplate_(STAFF_EMAIL, EDITED_LISTING_SUBJECT, EDITED_LISTING_BODY, listing, editLink, sheet, row);
   }
@@ -617,6 +630,10 @@ function sendTemplate_(to, subject, body, listing, editLink, sheet, row) {
     row: row,
   };
   MailApp.sendEmail(to, fill_(subject, values), fill_(body, values));
+}
+
+function notifyNewActivity_(listing, sheet, row) {
+  sendTemplate_(STAFF_EMAIL, NEW_ACTIVITY_SUBJECT, NEW_ACTIVITY_BODY, listing, "", sheet, row);
 }
 
 function notifyProblem_(message, sheet, row) {

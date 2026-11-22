@@ -687,15 +687,22 @@ console.log('\n# 17. Activities and Link Requests behave exactly as before');
     w.lookup('nobody@org.test');                                   // staff no-match
     return JSON.stringify({ writes: w.log.writes, mails: w.log.mailFull });
   };
+  // The one intended difference from master: a new activity also tells staff.
+  // Set those emails aside and everything else must match byte for byte.
+  const isNewActivity = (m) => /^New activity waiting for approval: /.test(m.subj);
+  const withoutNew = (j) => { const o = JSON.parse(j); o.mails = o.mails.filter((m) => !isNewActivity(m)); return JSON.stringify(o); };
   const before = scenario(world({ codeSource: masterCode })), after = scenario(world());
-  check('without an Organizations tab: identical writes and emails to master\'s Code.gs', before === after);
+  check('without an Organizations tab: identical writes and emails to master\'s Code.gs, apart from the new-activity staff email',
+    withoutNew(before) === withoutNew(after) && JSON.parse(before).mails.every((m) => !isNewActivity(m)));
+  check('...and that difference is exactly one email, for the one new activity (Prog C)',
+    JSON.parse(after).mails.filter(isNewActivity).map((m) => m.subj).join('|') === 'New activity waiting for approval: Org C – Prog C');
   const parsed = JSON.parse(after);
   check('...and that scenario really exercises them (link written, thank-you, edit notice, lookup, no-match)',
     parsed.writes.some((x) => x.startsWith(`Activities!R2C${ACT.link} `)) &&
     parsed.mails.some((x) => /Thanks for submitting Prog C/.test(x.subj)) && parsed.mails.some((x) => /Listing edited: Org B/.test(x.subj)) &&
     parsed.mails.some((x) => x.to === 'alice@org.test') && parsed.mails.some((x) => /unknown email/.test(x.subj)), JSON.stringify(parsed.mails.map((x) => x.subj)));
   const orgBefore = scenario(orgWorld({ codeSource: masterCode })), orgAfter = scenario(orgWorld());
-  check('with the Organizations tab and its 43 backfilled rows: still identical', orgBefore === orgAfter);
+  check('with the Organizations tab and its 43 backfilled rows: still identical, apart from that email', withoutNew(orgBefore) === withoutNew(orgAfter));
 }
 
 console.log('\n# 18. The Activities form\'s organization list follows the Organizations tab');
@@ -743,6 +750,58 @@ console.log('\n# 18. The Activities form\'s organization list follows the Organi
   const e3 = tryRun(() => w3.g.syncActivityOrgChoices());
   check('no Organizations tab: no throw, staff told, form untouched', e3 === null && w3.log.mailFull.length === 1 &&
     /no "Organizations" tab/.test(w3.log.mailFull[0].body) && w3.log.formWrites.length === 0, e3 || JSON.stringify(w3.log.mailFull.map((x) => x.body)));
+}
+
+console.log('\n# 19. A new activity tells staff it is waiting for approval');
+{
+  const STAFF = 'philliptrah2015@gmail.com';
+  const staffNew = (d) => d.filter((m) => /^New activity waiting for approval: /.test(m.subj));
+  const w = world();
+  const from = () => w.log.mailFull.length;
+  // A normal new activity.
+  let m = from();
+  const { row } = w.submitListing({ org: 'Org N', prog: 'Prog N', email: 'n@org.test' });
+  let d = w.log.mailFull.slice(m);
+  const s1 = staffNew(d);
+  check('one staff email, to STAFF_EMAIL, subject "New activity waiting for approval: Org N – Prog N"',
+    s1.length === 1 && s1[0].to === STAFF && s1[0].subj === 'New activity waiting for approval: Org N – Prog N', JSON.stringify(d.map((x) => x.to + ' :: ' + x.subj)));
+  check('its body links to that row and says to tick Show on Site',
+    s1.length === 1 && s1[0].body.includes('#gid=') && s1[0].body.includes('&range=A' + row) && s1[0].body.includes('(row ' + row + ')') && /tick Show on Site/.test(s1[0].body), s1[0] && s1[0].body);
+  check('the partner still gets their thank-you with the edit link, sent first',
+    d.length === 2 && d[0].to === 'n@org.test' && /Thanks for submitting Prog N/.test(d[0].subj) && d[0].body.includes('F-LISTINGS/edit'));
+  check('the script still never writes Show on Site', !w.log.writes.some((x) => x.startsWith('Activities!R' + row + 'C' + ACT.show + ' ')));
+  // The same activity edited through its link: the edit notice only.
+  m = from();
+  w.fire(w.activities, row);
+  d = w.log.mailFull.slice(m);
+  check('an edit sends "Listing edited" and no new-activity email',
+    staffNew(d).length === 0 && d.length === 1 && /^Listing edited: Org N/.test(d[0].subj), JSON.stringify(d.map((x) => x.subj)));
+  // A hand-typed row: nothing at all.
+  const hand = w.listingRow({ org: 'Hand Org', prog: 'Hand Prog', email: 'h@org.test' });
+  m = from();
+  w.fire(w.activities, hand);
+  check('a hand-typed row (no Timestamp) sends nothing', w.log.mailFull.length === m);
+  // A new activity whose manager email is unusable: staff still hear it is waiting.
+  m = from();
+  w.submitListing({ org: 'Org Bad', prog: 'Prog Bad', email: 'not an email' });
+  d = w.log.mailFull.slice(m);
+  check('bad manager email: the problem email as before, then the waiting email',
+    d.length === 2 && /needs a look/.test(d[0].subj) && staffNew(d).length === 1 && staffNew(d)[0].to === STAFF, JSON.stringify(d.map((x) => x.subj)));
+  // A new row the script can't match to a form response.
+  const ghost = w.listingRow({ ts: new Date(Date.UTC(2020, 0, 1)), org: 'Org Ghost', prog: 'Prog Ghost', email: 'g@org.test' });
+  m = from();
+  w.fire(w.activities, ghost);
+  d = w.log.mailFull.slice(m);
+  check('unmatched new row: no link written, the problem email, then the waiting email',
+    d.length === 2 && /needs a look/.test(d[0].subj) && staffNew(d).length === 1 &&
+    !w.log.writes.some((x) => x.startsWith('Activities!R' + ghost + 'C' + ACT.link + ' ')), JSON.stringify(d.map((x) => x.subj)));
+  // Organizations are unchanged: their own waiting email, never the activity one.
+  const o = orgWorld();
+  const om = o.log.mailFull.length;
+  const oe = tryRun(() => o.submitOrg(newOrg('Staff Test Org', 'st@org.test')));
+  const od = o.log.mailFull.slice(om);
+  check('a new organization sends its own waiting email and no activity one',
+    oe === null && od.some((x) => /^New organization waiting for approval: Staff Test Org/.test(x.subj)) && staffNew(od).length === 0, oe || JSON.stringify(od.map((x) => x.subj)));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
