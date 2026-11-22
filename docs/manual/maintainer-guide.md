@@ -34,14 +34,14 @@ Partner fills a Google Form
 2. **Never rename a tab** without updating the script first. `Code.gs` routes
    form submissions by tab name (`Activities`, `Link Requests`, and
    `Organizations` from `OrgForm.gs`), and the formulas refer to tabs by name.
-2. **Never edit Live Activities or Live Organizations** except their formula,
+3. **Never edit Live Activities or Live Organizations** except their formula,
    and only deliberately. Both are protected.
-3. **Keep the spreadsheet private.** Only the two Live tabs are published. The
+4. **Keep the spreadsheet private.** Only the two Live tabs are published. The
    other tabs hold partners' emails and edit links, and an edit link lets anyone
    rewrite that listing.
-4. **Never add an Organizations checkbox option containing a comma.** The site
+5. **Never add an Organizations checkbox option containing a comma.** The site
    splits those cells on commas.
-5. **Header names matter.** The site finds columns by exact, case-sensitive
+6. **Header names matter.** The site finds columns by exact, case-sensitive
    header text, and the script checks row-1 headers before writing.
 
 ### The column letters in use today
@@ -88,7 +88,7 @@ that.
 2. Add the question in the form. **Title it exactly** as you want the header.
 3. In the response tab, find where the new column landed, and which letters
    Show on site, Edit link, email and status are now in.
-3. **Activities:** if Z/AA/W moved, update the letters at the top of `Code.gs`
+4. **Activities:** if Z/AA/W moved, update the letters at the top of `Code.gs`
    (`MANAGER_EMAIL_COLUMN`, `SHOW_ON_SITE_COLUMN`, `EDIT_LINK_COLUMN`) and
    re-paste it. **Organizations:** `Code.gs` finds these by header, so nothing
    to change.
