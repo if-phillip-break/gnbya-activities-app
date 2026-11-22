@@ -4,9 +4,9 @@ A complete description of what this tool is, what data it holds, and exactly how
 it behaves. Written to be handed to someone (or some agent) with no prior context
 who needs to reason about new features.
 
-Accurate as of 2026-11-19 on `master`, up to and including the commit that
-moved the Organizations tab onto its published sheet feed. Section 11's data
-was read from the production feed on 2026-11-18.
+Accurate as of 2026-11-21 on `master`, up to and including the change that
+makes an inactive organization hide its activities (live in production since
+2026-11-21). Section 11's data was read from the production feed on 2026-11-18.
 
 ---
 
@@ -152,6 +152,30 @@ spaces. That's why the Activities form's "Organization Name" is a multiple-choic
 list of the organizations (kept in sync by `syncActivityOrgChoices()` in
 `Code.gs`), with Google's "Other:" box for partners who aren't listed. An "Other"
 name matches nothing, so those activities always show.
+
+The production formula in `Live Activities!A2` (the tab is protected: editing it
+brings up an "edit anyway?" prompt):
+
+```
+=IFERROR(FILTER(HSTACK(Activities!B2:V, Activities!X2:X, Activities!Y2:Y),
+  Activities!Z2:Z=TRUE,
+  Activities!X2:X<>"Remove from site",
+  ISNA(MATCH(TRIM(Activities!B2:B),
+    IFERROR(FILTER(TRIM(Organizations!B2:B), Organizations!B2:B<>"",
+      (Organizations!U2:U<>TRUE)+(Organizations!S2:S="Remove from site")),
+      "§none§"), 0))), "")
+```
+
+The inner FILTER is the list of hidden organizations; if it's empty, nothing is
+hidden. Verified on 2026-11-21 by unticking Buttonwood Park Zoo: Summer went 22
+→ 21 (ZooCrew gone) and Organizations 43 → 42, and re-ticking restored both
+with ZooCrew's own tick never touched.
+
+**The site lags the sheet by a couple of minutes, unevenly.** After any change,
+Google's published CSVs take about two minutes to settle, and during that window
+different page loads get the old *or* the new copy (in the test, 42 and 43
+organizations alternated). When checking a change, read the feed several times
+in a row rather than once.
 
 **The sharpest operational edge in the whole system:** the "Live Activities" tab is
 a `FILTER` formula over a *fixed column range*. Adding a column to the form does
@@ -690,6 +714,19 @@ candidates.
 18. **The FILTER-range gotcha** in §4 is the single most likely way for this site
     to break silently, and it now applies to two tabs: Live Activities and Live
     organizations.
+19. **Some organization names were corrected by typing in the cell, so an
+    organization's own edit can undo them.** On 2026-11-21, to make names match
+    exactly, staff typed new names over two backfilled organization rows
+    ("Child's Play Parent Joy", "New Bedford Parks, Recreation & Beaches") and
+    three form-submitted activity rows (Learn to Ride, SuperART, Teen
+    Ambassador), because those old responses can't be resubmitted without
+    answers to questions added since. The form still holds the old names, so if
+    one of those organizations edits through its link, the old name comes back.
+    That never hides anything wrongly: the activity just becomes "unknown" and
+    always shows, and staff get the usual "edited" email to fix it.
+20. **YMCA - New Bedford is deliberately unmatched** (Camp Frederick Douglass),
+    pending a check with GNBYA on whether it is the "YMCA SC Camp Frederick
+    Douglass" organization. Until then its activity always shows.
 
 ---
 

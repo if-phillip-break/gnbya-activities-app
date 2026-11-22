@@ -72,22 +72,30 @@ Insert → Tick box. Leave it unchecked by default.
 
 Add a new tab named **Live Activities**.
 
-- In **row 1**, type these headers across columns A–Q, in this exact order:
-  Organization name · Program name · Categorization · Description · Website ·
-  Ages or grades · Age min · Age max · Session dates · Hours · Cost · Address ·
-  Bus accessible? · Nearest bus route/stop · Staff language support ·
-  Translation available · Contact
-- In **cell A2**, paste:
+- In **row 1**, type the headers of the Activities columns it publishes, in
+  order: every header from **B to V**, then **X** and **Y**. Leave out W
+  (Listing Manager Email), Z (Show on Site) and AA (Edit Link); those must never
+  be published.
+- In **cell A2**, paste the production formula (as of 2026-11-21):
 
   ```
-  =IFERROR(FILTER(Activities!B2:R, Activities!S2:S=TRUE), )
+  =IFERROR(FILTER(HSTACK(Activities!B2:V, Activities!X2:X, Activities!Y2:Y),
+    Activities!Z2:Z=TRUE,
+    Activities!X2:X<>"Remove from site",
+    ISNA(MATCH(TRIM(Activities!B2:B),
+      IFERROR(FILTER(TRIM(Organizations!B2:B), Organizations!B2:B<>"",
+        (Organizations!U2:U<>TRUE)+(Organizations!S2:S="Remove from site")),
+        "§none§"), 0))), "")
   ```
 
-This pulls every approved row (Show on site = TRUE), columns B–R, under your typed
-headers. Tick a box → the row shows up here automatically; untick → it disappears.
+This pulls every approved row (Show on Site = TRUE) that the organization hasn't
+marked "Remove from site", and drops any activity whose organization is in the
+Organizations tab but unticked or marked "Remove from site" there. Tick a box →
+the row shows up here automatically; untick → it disappears.
 
-> If you later add, remove, or reorder form questions, the column letters shift —
-> update `B2:R`, the `S2:S` reference, and the header row to match.
+> If you later add, remove, or reorder form questions, the column letters shift.
+> Update every range above (`B2:V`, `X2:X`, `Y2:Y`, `Z2:Z`, and the Organizations
+> `B`, `S`, `U` references) and the header row to match.
 
 ### 5. Publish only the Live Activities tab
 
