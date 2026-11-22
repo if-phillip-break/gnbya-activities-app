@@ -25,8 +25,9 @@ stop and check you're in the right place.
 Nothing appears on the website until a staff member ticks its box.
 
 **A new activity**
-1. New submissions arrive at the bottom of **Activities**. Rows waiting for
-   approval are **yellow**.
+1. You'll get an email, "New activity waiting for approval: *organization –
+   program*", with a link to its row at the bottom of **Activities**. Rows
+   waiting for approval are **yellow**.
 2. Read it through. Check especially:
     - the organization name matches an organization exactly (see "When an
       organization goes inactive" below);
@@ -35,10 +36,6 @@ Nothing appears on the website until a staff member ticks its box.
       Activities for summer.
 3. Tick **Show on Site** (column Z). It's on the website within about five
    minutes.
-
-> **You are not emailed about new activities.** The script emails the partner
-> a thank-you, but nothing comes to staff. Look at the Activities tab for
-> yellow rows at least once a week.
 
 **A new organization**
 1. You'll get an email, "New organization waiting for approval: *name*", with a
@@ -67,6 +64,7 @@ checklist in `maintainer-guide.md`.
 
 | Subject | What it means | What to do |
 |---|---|---|
+| **New activity waiting for approval:** *organization – program* | A new activity came in | Review it; tick Show on Site (column Z) |
 | **New organization waiting for approval:** *name* | A new organization profile came in | Review it; tick Show on site (column U) |
 | **Organization edited:** *name* | An organization changed its profile through its edit link. If it was already approved, the change is **already live**. The email shows its status | Skim the change. If it now says "Remove from site", it's already off the site |
 | **Listing edited:** *organization – program* | A partner changed an activity through its edit link. If it was already approved, the change is **already live** | Skim the change and fix anything wrong (see "Making changes") |

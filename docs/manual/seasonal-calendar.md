@@ -24,7 +24,7 @@ again next year. Teen Ambassador (The Zeiterion) is in this state now.
 ## Month by month
 
 **Every month**
-- Check the Activities tab for yellow rows (new activities don't email staff).
+- Check the Activities tab for yellow rows you haven't approved yet.
 - On the website's **Current Activities** tab, look at greyed "Session ended"
   cards. For each one, ask the partner to update its dates through their link.
   If it's over for good, untick **Show on Site** or ask them to choose "Remove
