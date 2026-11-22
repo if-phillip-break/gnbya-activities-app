@@ -560,10 +560,11 @@ actually set. The empty state offers the same button.
    all" (no Clear button, since there is nothing to clear) versus "your filters
    excluded everything" (offers Clear all). The summer archive gets its own
    wording.
-8. **Footer** — a help line pointing at the Alliance family line, a
-   "Know a program we're missing?" link that stays hidden until
-   `SUGGEST_FORM_URL` is set in `js/data.js`, and "Listings updated weekly by
-   participating organizations."
+8. **Footer** — a help line pointing families to lead@gnbya.org (also step 3
+   of the header's Getting started card), a "Know a program we're missing?"
+   link that stays hidden until `SUGGEST_FORM_URL` is set in `js/data.js`,
+   "Listings updated weekly by participating organizations.", and a quiet
+   "For organizations" link to `partners.html`.
 
 ### A program card, in order
 
