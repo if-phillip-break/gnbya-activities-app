@@ -149,8 +149,10 @@ built the Organizations form and are done.
 5. **Names typed over form answers can revert** on the partner's next edit
    (Child's Play Parent Joy, New Bedford Parks, Recreation & Beaches, Learn to
    Ride, SuperART, Teen Ambassador). YMCA - New Bedford is unmatched on purpose.
-6. **"Is the program free?" overrides the cost text.** Little Kids Basketball
-   3v3 says Yes beside "$130", so it shows Free. Fix the answer.
+6. **"Is the program free?" overrides the cost text.** If it says Yes beside a
+   price, the card shows Free. Little Kids Basketball 3v3 used to do this. It
+   says No in production now (checked 21 November), but watch for it on new
+   listings.
 7. **Dates assume the current year**, so annual programs can show as ended late
    in the year.
 8. **No availability, registration dates or numeric cost.** Specs are in

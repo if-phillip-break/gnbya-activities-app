@@ -50,6 +50,10 @@ delete the row.
 
 ## What the row colours mean
 
+Only the **Activities** tab colours its rows. In Organizations, check the
+**Show on site** box (column U) instead: its rows just have plain alternating
+stripes.
+
 - **Yellow**: waiting for approval (Show on Site isn't ticked).
 - **Red**: the organization removed this listing itself by choosing "Remove
   from site". It has already gone from the website. Leave it unless they ask
@@ -157,7 +161,10 @@ Yellow was seen on the one unapproved activity.*
 
 ## Where to get help
 
-- Questions from families go to **lead@gnbya.org**, which the website and
-  forms tell them to use.
+- Families and partners are pointed to **lead@gnbya.org**: in step 3 of
+  "Getting started" and the footer on the website, the partners page footer,
+  and the descriptions of the Activities form and "Get my listing links" form.
+  (The Organizations form doesn't mention it.) Make sure someone at GNBYA
+  reads that inbox.
 - Anything technical: see `maintainer-guide.md` and its "Call a developer if…"
   list.
