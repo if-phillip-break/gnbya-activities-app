@@ -91,6 +91,20 @@ them and no edit link. **Most activities on the site today are like this: 24 of
 Never change the Organization Name cell without checking it still matches the
 Organizations tab exactly.
 
+### Replacing an old hand-typed listing
+
+Hand-typed listings are replaced as partners submit new programs through the
+form, starting with the 2027 summer programs in February. Nothing is converted
+in bulk. When a partner submits a program that replaces a hand-typed row:
+
+1. Approve the new row as usual: tick **Show on Site** (column Z).
+2. Check the new listing is on the website.
+3. Untick **Show on Site** on the **old** hand-typed row. Don't delete it.
+
+Do it in that order, close together: the program shows twice for a few
+minutes rather than vanishing. The new row comes from the form, so it has an
+edit link, and the partner's thank-you email gives them that link.
+
 Some form answers can't be resubmitted without filling in questions added since
 the partner first submitted. If an edit link asks for answers you don't have,
 ask the partner to do it, or check with your maintainer.

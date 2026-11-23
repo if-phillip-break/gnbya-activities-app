@@ -137,8 +137,9 @@ built the Organizations form and are done.
 ## Known gaps
 
 1. **24 of 29 activities were typed in by hand**: no Timestamp, no edit link.
-   Partners can't edit those themselves. They'd need to resubmit, and staff
-   would then untick the old row. **None of the 29 has a listing manager
+   Partners can't edit those themselves. No bulk conversion is planned:
+   they're replaced as partners submit new programs (from February 2027), and
+   staff untick each old row once its replacement is approved. **None of the 29 has a listing manager
    email**, so "Get my listing links" finds no activities yet. Activity links
    go out by hand, and only 5 exist.
 2. **42 of 43 organizations have no listing manager email.** Their edit links

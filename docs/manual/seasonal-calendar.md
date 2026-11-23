@@ -44,6 +44,10 @@ again next year. Teen Ambassador (The Zeiterion) is in this state now.
   live again with whatever is in the sheet**, so last summer's listings will
   show as current until partners update them.
 - Send links by hand to anyone without an email on file (see the staff guide).
+- **Most summer listings were typed in by hand and have no edit link.** Ask
+  those partners to submit this year's programs as new activities through the
+  form. As each one is approved, untick the old hand-typed row (see "Replacing
+  an old hand-typed listing" in the staff guide).
 
 **March to May**
 - Approve summer submissions quickly: most families plan summer in the spring.
