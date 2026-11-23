@@ -120,9 +120,12 @@ input, button, select { font-family: inherit; }
 
 /* ---------------- Header ---------------- */
 .site-header {
+  position: relative;
+  overflow: hidden;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
+.site-header > .container { position: relative; z-index: 1; }
 
 /* The title column used to hold a 96px logo, which gave it enough height to
    sit level with the Getting started card. Without one, a two-line heading
@@ -1309,34 +1312,85 @@ body.sheet-lock { overflow: hidden; }
 }
 .card-grid[data-motion="filter"] > .card { animation: fade-in 0.28s ease-out backwards; }
 
-/* On load, the heading and Getting started arrive slightly enlarged and
-   glowing, then settle into place. The step numbers pop in one by one. */
-@keyframes title-intro {
-  0% { opacity: 0; transform: translateY(14px) scale(1.07); }
-  45% { opacity: 1; transform: translateY(0) scale(1.05); }
-  100% { opacity: 1; transform: none; }
+/* On load: a deliberate entrance, meant to be noticed.
+   - A wash of green light sweeps across the header and fades.
+   - The heading's words rise out of a blur one after another, overshoot
+     slightly, and settle.
+   - Getting started lands from below, enlarged with a bright green ring and
+     a deep glow, then settles to its normal size.
+   - Each step slides in from the right; its number bursts in with a ring
+     that ripples out.
+   All of it finishes within about 2.6 seconds, and none of it runs for
+   people who ask for reduced motion. */
+@keyframes header-wash {
+  0% { opacity: 0; background-position: 0% 50%; }
+  35% { opacity: 1; }
+  100% { opacity: 0; background-position: 100% 50%; }
 }
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* Twice the header's width, slid across it, so the light sweeps from
+     left to right without the layer ever reaching past the header. */
+  background:
+    radial-gradient(ellipse 22% 70% at 30% 50%, rgba(21, 127, 61, 0.24), transparent 70%),
+    radial-gradient(ellipse 18% 65% at 62% 45%, rgba(27, 111, 168, 0.13), transparent 70%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  opacity: 0;
+  animation: header-wash 2.4s var(--ease-out) 0.05s;
+}
+
+@keyframes word-in {
+  0% { opacity: 0; transform: translateY(0.55em) scale(1.35); filter: blur(10px); }
+  55% { opacity: 1; transform: translateY(-0.06em) scale(0.97); filter: blur(0); }
+  78% { transform: translateY(0.02em) scale(1.02); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+@keyframes title-intro {
+  0% { opacity: 0; transform: translateY(24px) scale(1.18); filter: blur(8px); }
+  55% { opacity: 1; transform: translateY(-3px) scale(0.98); filter: blur(0); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+/* Pages without word spans (partners.html) bring the heading in whole. */
+.page-title { transform-origin: left bottom; animation: title-intro 1.4s var(--ease-out) backwards; }
+.page-title:has(.tw) { animation: none; }
+.page-title .tw {
+  display: inline-block;
+  transform-origin: 50% 80%;
+  animation: word-in 1.1s var(--ease-out) backwards;
+  animation-delay: calc(0.12s + var(--w, 0) * 0.09s);
+}
+
 @keyframes gs-intro {
-  0% { opacity: 0; transform: translateY(18px) scale(1.04); box-shadow: 0 0 0 0 rgba(21, 127, 61, 0); }
-  40% { opacity: 1; transform: translateY(0) scale(1.035); box-shadow: 0 0 0 6px rgba(21, 127, 61, 0.18), 0 22px 44px -20px rgba(21, 127, 61, 0.5); }
+  0% { opacity: 0; transform: translateY(60px) scale(1.14); box-shadow: 0 0 0 0 rgba(21, 127, 61, 0); }
+  45% { opacity: 1; transform: translateY(-6px) scale(1.06); box-shadow: 0 0 0 8px rgba(21, 127, 61, 0.28), 0 30px 60px -22px rgba(21, 127, 61, 0.65); }
+  70% { transform: translateY(2px) scale(0.99); box-shadow: 0 0 0 4px rgba(21, 127, 61, 0.16), 0 18px 40px -22px rgba(21, 127, 61, 0.4); }
   100% { opacity: 1; transform: none; box-shadow: 0 0 0 0 rgba(21, 127, 61, 0); }
 }
-@keyframes num-pop {
-  0% { opacity: 0; transform: scale(0.3); }
-  65% { opacity: 1; transform: scale(1.22); }
-  100% { opacity: 1; transform: scale(1); }
+@keyframes step-in {
+  0% { opacity: 0; transform: translateX(40px); }
+  70% { opacity: 1; transform: translateX(-4px); }
+  100% { opacity: 1; transform: none; }
 }
-.page-title { transform-origin: left bottom; animation: title-intro 1.5s var(--ease-out) backwards; }
-.header-left .theme-toggle { animation: fade-in 0.6s ease-out 0.7s backwards; }
-.getting-started { transform-origin: center; animation: gs-intro 1.7s var(--ease-out) 0.15s backwards; }
-.gs-list li { animation: rise-in 0.5s var(--ease-out) backwards; }
-.gs-list li:nth-child(1) { animation-delay: 0.45s; }
-.gs-list li:nth-child(2) { animation-delay: 0.6s; }
-.gs-list li:nth-child(3) { animation-delay: 0.75s; }
-.gs-list li .gs-num { animation: num-pop 0.55s var(--ease-out) backwards; }
-.gs-list li:nth-child(1) .gs-num { animation-delay: 0.55s; }
-.gs-list li:nth-child(2) .gs-num { animation-delay: 0.7s; }
-.gs-list li:nth-child(3) .gs-num { animation-delay: 0.85s; }
+@keyframes num-pop {
+  0% { opacity: 0; transform: scale(0) rotate(-90deg); box-shadow: 0 0 0 0 rgba(21, 127, 61, 0.6); }
+  55% { opacity: 1; transform: scale(1.5) rotate(8deg); box-shadow: 0 0 0 0 rgba(21, 127, 61, 0.55); }
+  100% { opacity: 1; transform: scale(1) rotate(0); box-shadow: 0 0 0 12px rgba(21, 127, 61, 0); }
+}
+.header-left .theme-toggle { animation: rise-in 0.7s var(--ease-out) 1.1s backwards; }
+.getting-started { transform-origin: center; animation: gs-intro 1.9s var(--ease-out) 0.35s backwards; }
+.gs-label { animation: fade-in 0.6s ease-out 0.75s backwards; }
+.gs-list li { animation: step-in 0.75s var(--ease-out) backwards; }
+.gs-list li:nth-child(1) { animation-delay: 0.85s; }
+.gs-list li:nth-child(2) { animation-delay: 1.1s; }
+.gs-list li:nth-child(3) { animation-delay: 1.35s; }
+.gs-list li .gs-num { animation: num-pop 0.8s var(--ease-out) backwards; }
+.gs-list li:nth-child(1) .gs-num { animation-delay: 0.95s; }
+.gs-list li:nth-child(2) .gs-num { animation-delay: 1.2s; }
+.gs-list li:nth-child(3) .gs-num { animation-delay: 1.45s; }
 
 /* Then a soft green pulse travels across search, Filters and age, so a
    parent notices the controls exist. Once per page load. */
@@ -1353,10 +1407,10 @@ body.sheet-lock { overflow: hidden; }
   30% { transform: rotate(-12deg); }
   60% { transform: rotate(10deg); }
 }
-.search-input { animation: spotlight 1.1s ease-in-out 1.2s; }
-.filters-toggle { animation: spotlight-bump 0.9s var(--ease-out) 1.6s 2; }
-.filters-icon { animation: filters-nudge 0.6s ease-in-out 1.7s 2; }
-.age-group { animation: spotlight 1.1s ease-in-out 2.3s; }
+.search-input { animation: spotlight 1.1s ease-in-out 1.9s; }
+.filters-toggle { animation: spotlight-bump 0.9s var(--ease-out) 2.3s 2; }
+.filters-icon { animation: filters-nudge 0.6s ease-in-out 2.4s 2; }
+.age-group { animation: spotlight 1.1s ease-in-out 3.1s; }
 
 /* Things that appear on demand fade or pop in. */
 .facet-menu { transform-origin: top left; animation: pop-in 0.2s var(--ease-out); }
