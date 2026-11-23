@@ -395,7 +395,12 @@ function descriptionHTML(text, collapsible) {
   return `<div class="desc-block"><p class="card-desc clampable">${text}</p><button type="button" class="see-more-btn" aria-expanded="false" hidden>See more</button></div>`;
 }
 
-function programCardHTML(p) {
+// The arrow is its own span so it can nudge on hover; the link reads the same.
+function actionLabel(text) {
+  return `${text} <span class="card-action-arrow" aria-hidden="true">→</span>`;
+}
+
+function programCardHTML(p, i = 0) {
   const badges = [];
   // Not running, over, full, or out of season: greyed in every case, but the
   // badge says which, since a parent can still ask a full program about a
@@ -419,7 +424,7 @@ function programCardHTML(p) {
   if (programHasLanguage(p)) badges.push(badge("Language support", "plain"));
 
   return `
-    <article class="card${closed ? " card-past" : ""}">
+    <article class="card${closed ? " card-past" : ""}" style="--i:${i}">
       <div class="card-top">
         <div style="min-width:0">
           <p class="card-org">${p.organizationName}</p>
@@ -441,7 +446,7 @@ function programCardHTML(p) {
 
       <div class="card-footer">
         <div class="card-contact">${p.contact || ""}</div>
-        ${p.website ? `<a class="card-action" href="${p.website}" target="_blank" rel="noopener">${archived ? "Visit website" : "Sign up"} →</a>` : ""}
+        ${p.website ? `<a class="card-action" href="${p.website}" target="_blank" rel="noopener">${actionLabel(archived ? "Visit website" : "Sign up")}</a>` : ""}
       </div>
     </article>`;
 }
@@ -453,7 +458,7 @@ function orgCostSummary(o) {
   return "—";
 }
 
-function organizationCardHTML(o) {
+function organizationCardHTML(o, i = 0) {
   const badges = [];
   if (o.cost.some((c) => /free/i.test(c))) badges.push(badge("Free options", "info"));
   else if (orgIsAffordable(o)) badges.push(badge("Financial aid", "info"));
@@ -464,7 +469,7 @@ function organizationCardHTML(o) {
   const isFree = o.cost.some((c) => /free/i.test(c));
 
   return `
-    <article class="card">
+    <article class="card" style="--i:${i}">
       <div class="card-top">
         <div style="min-width:0">
           <h2 class="card-title">${o.name}</h2>
@@ -485,7 +490,7 @@ function organizationCardHTML(o) {
 
       <div class="card-footer">
         <div class="card-contact">${o.registration.length ? "Registration: " + o.registration.join(", ") : ""}</div>
-        ${o.website ? `<a class="card-action" href="${o.website}" target="_blank" rel="noopener">Visit website →</a>` : ""}
+        ${o.website ? `<a class="card-action" href="${o.website}" target="_blank" rel="noopener">${actionLabel("Visit website")}</a>` : ""}
       </div>
     </article>`;
 }
@@ -493,6 +498,11 @@ function organizationCardHTML(o) {
 // ---------- filter-bar rendering ----------
 
 function renderTabs() {
+  // The white highlight behind the active tab is one element that slides
+  // between tabs. Redrawing the buttons would drop it, so remember where it
+  // was and glide it from there to the new tab.
+  const old = tabsEl.querySelector(".seg-indicator");
+  const from = old ? old.getAttribute("style") : null;
   tabsEl.innerHTML = TABS.map(
     (t) =>
       `<button type="button" role="tab" class="seg-tab ${t.key === activeTab ? "active" : ""}" data-tab="${t.key}" aria-selected="${t.key === activeTab}">${t.label}${t.tag ? `<span class="seg-tab-tag">${t.tag}</span>` : ""}</button>`
@@ -500,6 +510,23 @@ function renderTabs() {
   tabsEl.querySelectorAll(".seg-tab").forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
   });
+  const indicator = document.createElement("span");
+  indicator.className = "seg-indicator";
+  indicator.setAttribute("aria-hidden", "true");
+  if (from) indicator.setAttribute("style", from);
+  tabsEl.prepend(indicator);
+  placeSegIndicator(!!from);
+}
+
+function placeSegIndicator(animate) {
+  const indicator = tabsEl.querySelector(".seg-indicator");
+  const active = tabsEl.querySelector(".seg-tab.active");
+  if (!indicator || !active) return;
+  indicator.classList.toggle("glide", animate);
+  if (animate) void indicator.offsetWidth; // start from the old spot
+  indicator.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+  indicator.style.width = active.offsetWidth + "px";
+  indicator.style.height = active.offsetHeight + "px";
 }
 
 function renderAgeChips() {
@@ -769,6 +796,8 @@ function wireDateFilter() {
 
   // Re-rendering replaces the DOM, so restore whatever was open before.
   if (calendarOpen) {
+    // Already open before this redraw: show it without replaying the pop-in.
+    menu.classList.add("reopen");
     menu.hidden = false;
     btn.setAttribute("aria-expanded", "true");
   }
@@ -951,11 +980,31 @@ function renderArchiveNote() {
 
 // ---------- main render ----------
 
+// How the next redraw of the cards should move. Purely visual:
+//   "enter"  a new tab or freshly loaded data: cards rise in, one after another
+//   "filter" a filter changed: a quick crossfade
+//   "none"   typing in search: no motion, so results don't flicker per key
+let nextMotion = "enter";
+let lastCountText = "";
+
+// Shown while a feed loads: grey card shapes in place of the listings, so the
+// page doesn't jump when they arrive. Screen readers still hear "Loading…".
+const SKELETON_HTML =
+  `<p class="loading visually-hidden">Loading…</p>` +
+  Array.from({ length: 6 }, () => `
+    <div class="skeleton-card" aria-hidden="true">
+      <span class="sk sk-org"></span>
+      <span class="sk sk-title"></span>
+      <span class="sk sk-facts"></span>
+      <span class="sk sk-line"></span>
+      <span class="sk sk-line short"></span>
+    </div>`).join("");
+
 function applyFilters() {
   clearAllBtn.hidden = !anyFilterActive();
   sheetClearBtn.disabled = !anyFilterActive();
   const activeCount = activeFilterCount();
-  filtersCountEl.textContent = activeCount ? ` (${activeCount})` : "";
+  filtersCountEl.textContent = activeCount ? String(activeCount) : "";
   filtersToggleBtn.classList.toggle("has-active", activeCount > 0);
   // Redrawn every pass so the button label and the highlighted days follow the
   // selection; wireDateFilter() puts the popover back if it was open.
@@ -975,7 +1024,8 @@ function applyFilters() {
     return;
   }
   if (!dataReady[ds]) {
-    cardGridEl.innerHTML = `<p class="loading">Loading…</p>`;
+    cardGridEl.innerHTML = SKELETON_HTML;
+    nextMotion = "enter"; // the real cards rise in once they arrive
     emptyStateEl.hidden = true;
     resultCountEl.textContent = "";
     setSheetCount("results");
@@ -986,6 +1036,17 @@ function applyFilters() {
   const countText = `${list.length} ${list.length === 1 ? def.noun : def.nounPlural}`;
   resultCountEl.textContent = countText;
   setSheetCount(countText);
+  if (countText !== lastCountText && lastCountText !== "") {
+    // A small pulse so a changed count is noticed without being read.
+    resultCountEl.classList.remove("bump");
+    void resultCountEl.offsetWidth;
+    resultCountEl.classList.add("bump");
+  }
+  lastCountText = countText;
+
+  const motion = nextMotion;
+  nextMotion = "filter";
+  cardGridEl.dataset.motion = motion;
 
   if (list.length === 0) {
     cardGridEl.innerHTML = "";
@@ -994,9 +1055,11 @@ function applyFilters() {
   }
   emptyStateEl.hidden = true;
   const cardFn = isProgramTab(activeTab) ? programCardHTML : organizationCardHTML;
-  cardGridEl.innerHTML = list.map(cardFn).join("");
+  cardGridEl.innerHTML = list.map((item, i) => cardFn(item, i)).join("");
   wireDescriptionClamps();
 }
+
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 // Two different kinds of "nothing here": the tab has no listings at all (so
 // there's nothing to clear — offering a Clear button would just be confusing),
@@ -1031,9 +1094,18 @@ function wireDescriptionClamps() {
     }
     btn.hidden = false;
     btn.addEventListener("click", () => {
+      const before = desc.offsetHeight;
       const expanded = desc.classList.toggle("expanded");
       btn.textContent = expanded ? "See less" : "See more";
       btn.setAttribute("aria-expanded", String(expanded));
+      // Glide between the two heights instead of jumping.
+      const after = desc.offsetHeight;
+      if (!reduceMotion.matches && desc.animate && before !== after) {
+        desc.animate(
+          [{ height: before + "px", overflow: "hidden" }, { height: after + "px", overflow: "hidden" }],
+          { duration: 260, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" }
+        );
+      }
     });
   });
 }
@@ -1044,6 +1116,7 @@ function setActiveTab(tab) {
   closeAllFacetMenus();
   // Each tab keeps its own dates, so the visible month has to follow the tab.
   calendarCursor = null;
+  nextMotion = "enter";
   renderTabs();
   renderToggles();
   renderCategoryChips();
@@ -1106,8 +1179,18 @@ async function loadOrganizations() {
 
 searchInput.addEventListener("input", () => {
   query = searchInput.value;
+  nextMotion = "none";
   applyFilters();
 });
+
+// Purely visual: the sticky bar gets a soft shadow once the page scrolls
+// under it, and the tab highlight follows the tabs if their size changes.
+const filterBarEl = document.querySelector(".filter-bar");
+const markScrolled = () => filterBarEl.classList.toggle("scrolled", window.scrollY > 4);
+window.addEventListener("scroll", markScrolled, { passive: true });
+markScrolled();
+if (window.ResizeObserver) new ResizeObserver(() => placeSegIndicator(false)).observe(tabsEl);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSegIndicator(false));
 clearAllBtn.addEventListener("click", clearAll);
 archiveNoteBtn.addEventListener("click", () => setActiveTab("current"));
 emptyClearBtn.addEventListener("click", clearAll);
