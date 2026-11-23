@@ -27,11 +27,13 @@ const ORGS_CSV_URL =
 
 // Machine-translated listing text for Spanish and Portuguese visitors: one
 // published tab per dataset in the same spreadsheet (see js/i18n.js and
-// docs). Left null, the guide shows listings in English; the interface is
-// still translated.
+// docs/manual/maintainer-guide.md). Set to null, the guide shows listings
+// in English; the interface is still translated.
 const TRANSLATION_CSV_URLS = {
-  programs: null,
-  orgs: null,
+  // "Activities Translations" tab
+  programs: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOv1GOvvxbbs45Zhnr7fLXKojgM6IvwChxO7omeJbnfWw1ziupuekM_x6jaSiTXgWJa35LbXUL17ww/pub?gid=590724494&single=true&output=csv",
+  // "Organizations Translations" tab
+  orgs: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOv1GOvvxbbs45Zhnr7fLXKojgM6IvwChxO7omeJbnfWw1ziupuekM_x6jaSiTXgWJa35LbXUL17ww/pub?gid=787448899&single=true&output=csv",
 };
 
 async function fetchRecords(url) {

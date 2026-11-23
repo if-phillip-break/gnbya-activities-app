@@ -24,7 +24,34 @@ Partner fills a Google Form
 | Forms | GNBYA Activities Intake Form · GNBYA Organizations Intake Form · GNBYA Activities: Get Listing Links (public links on `partners.html`) |
 | Script | Extensions → Apps Script in the spreadsheet: `Code.gs` + `OrgForm.gs` in one project. Repo copies in `apps-script/` |
 | Website | https://github.com/if-phillip-break/gnbya-activities-app. **Pushing `master` deploys** in 30–90 seconds |
-| Feeds | Set in `js/data.js`: `PROGRAMS_CSV_URL` (Live Activities, gid 1329653144) and `ORGS_CSV_URL` (Live Organizations, gid 1960834970) |
+| Feeds | Set in `js/data.js`: `PROGRAMS_CSV_URL` (Live Activities, gid 1329653144) and `ORGS_CSV_URL` (Live Organizations, gid 1960834970); `TRANSLATION_CSV_URLS` (Activities Translations, gid 590724494; Organizations Translations, gid 787448899) |
+
+### Spanish and Portuguese
+
+gnbya.org's Wix translator serves Spanish at `es.gnbya.org` and Portuguese at
+`pt.gnbya.org`, and embeds the guide unchanged on `/activities-finder`. The
+guide reads which of those addresses it's embedded in and switches language
+(`js/i18n.js`); `?lang=es` or `?lang=pt` on the guide's own address does the
+same, for testing. Nothing on the Wix side needs setting up.
+
+- **Interface wording** is hand-written in `js/i18n.js` (`STRINGS`). A new
+  English string with no entry there simply shows in English. Have a native
+  speaker review changes.
+- **Listing text** comes from the two translation tabs, which run
+  `GOOGLETRANSLATE` over the Live tabs: description, ages, dates, hours and
+  cost for activities; schedule and description for organizations. They
+  follow the Live tabs by themselves, so new and edited listings are
+  translated within a few minutes. Program and organization names stay in
+  English on purpose (Google mangles names), and a cost of just "Free" uses the
+  hand-written word.
+- **Filtering never uses the translations**: badges, the Free toggle, dates
+  and the calendar all read the English, so a bad translation can't hide a
+  listing. A cell Google can't translate stays blank and the English shows.
+- If a translation tab's feed fails or takes over 5 seconds, listings show in
+  English; the interface stays translated.
+- The translation tabs read Live Activities columns B, D, F, I, J, K, R and
+  Live Organizations columns O and P by letter: after changing either Live
+  formula's columns, update them too.
 
 ## Rules that keep the site working
 
@@ -35,8 +62,10 @@ Partner fills a Google Form
    form submissions by tab name (`Activities`, `Link Requests`, and
    `Organizations` from `OrgForm.gs`), and the formulas refer to tabs by name.
 3. **Never edit Live Activities or Live Organizations** except their formula,
-   and only deliberately. Both are protected.
-4. **Keep the spreadsheet private.** Only the two Live tabs are published. The
+   and only deliberately. Both are protected. Leave the two translation tabs
+   alone too (they aren't protected): their row 2 formulas fill every row.
+4. **Keep the spreadsheet private.** Only the two Live tabs and the two
+   translation tabs are published. The
    other tabs hold partners' emails and edit links, and an edit link lets anyone
    rewrite that listing.
 5. **Never add an Organizations checkbox option containing a comma.** The site

@@ -15,6 +15,7 @@ version of this guide.
 | **Activities** | Every program ever submitted: one row each | Yes: approve here (column Z, **Show on Site**) |
 | **Organizations** | Every organization profile: one row each | Yes: approve here (column U, **Show on site**) |
 | **Live Activities**, **Live Organizations** | Copies of the approved rows that feed the website | **No.** They update themselves. Editing them breaks the site |
+| **Activities Translations**, **Organizations Translations** | Spanish and Portuguese versions of the approved listings' text, made automatically by Google Translate for visitors who choose those languages on gnbya.org | **No.** They update themselves |
 | **Link Requests** | A log of "Get my listing links" requests | No, nothing to do there |
 
 A padlock on a tab means it's protected. If Google warns you before an edit,

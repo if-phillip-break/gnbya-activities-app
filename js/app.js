@@ -472,7 +472,7 @@ function programCardHTML(p, i = 0) {
   const overview = `
     <div class="fact-grid">
       ${factCell("Ages", tx(p, "ages", p.ageRange.display), { big: true })}
-      ${factCell("Cost", tx(p, "cost", null) || (p.tr && p.tr.enrollmentCost) || p.cost || (programIsFree(p) ? t("Free") : null), { big: true, free: programIsFree(p) })}
+      ${factCell("Cost", (/^\s*free\s*$/i.test(p.cost || "") ? t("Free") : tx(p, "cost", null) || (p.tr && p.tr.enrollmentCost) || p.cost) || (programIsFree(p) ? t("Free") : null), { big: true, free: programIsFree(p) })}
       ${factCell("Dates", tx(p, "sessionDates", p.sessionDates))}
       ${factCell("Hours", tx(p, "hours", p.hours))}
     </div>
@@ -495,7 +495,7 @@ function programCardHTML(p, i = 0) {
     i,
     past: closed,
     eyebrow: p.organizationName,
-    title: tx(p, "programName", p.programName),
+    title: p.programName,
     tabs: [
       { label: "Overview", html: overview },
       { label: "About", html: aboutHTML(tx(p, "description", p.description)) },
@@ -1362,7 +1362,9 @@ function clearAll() {
 // listings match. A missing row, a blank cell, or a cell Google couldn't
 // translate (#VALUE!, "Loading...") stays in English.
 const TR_FIELDS = {
-  programs: { "Program Name": "programName", "Description": "description", "Ages or Grades": "ages",
+  // Program names are left in English: they are names, and machine translation
+  // mangles them ("SPARK" became "CHISPA", "Something Fishy" "Algo sospechoso").
+  programs: { "Description": "description", "Ages or Grades": "ages",
     "Session Dates": "sessionDates", "Hours": "hours", "Cost": "cost", "Program Enrollment Cost": "enrollmentCost" },
   orgs: { "Schedule": "schedule", "Description": "description" },
 };
