@@ -671,7 +671,9 @@ console.log('\n# 16. "Get my listing links" searches organizations too');
 
 console.log('\n# 17. Activities and Link Requests behave exactly as before');
 {
-  const masterCode = require('child_process').execSync('git show master:apps-script/Code.gs', { cwd: REPO }).toString();
+  // The Code.gs from just before the new-activity staff email (b80be02), so this
+  // still compares old and new behaviour after that change reached master.
+  const masterCode = require('child_process').execSync('git show b80be02~1:apps-script/Code.gs', { cwd: REPO }).toString();
   const scenario = (w) => {
     const T = (s) => new Date(Date.UTC(2026, 9, 1, 10, 0, s));
     w.listingResponse(T(0), 'a@org.test', 'https://forms.test/F-LISTINGS/edit?r=A');
