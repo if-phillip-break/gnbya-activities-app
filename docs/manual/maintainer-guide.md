@@ -37,21 +37,28 @@ same, for testing. Nothing on the Wix side needs setting up.
 - **Interface wording** is hand-written in `js/i18n.js` (`STRINGS`). A new
   English string with no entry there simply shows in English. Have a native
   speaker review changes.
-- **Listing text** comes from the two translation tabs, which run
-  `GOOGLETRANSLATE` over the Live tabs: description, ages, dates, hours and
-  cost for activities; schedule and description for organizations. They
-  follow the Live tabs by themselves, so new and edited listings are
-  translated within a few minutes. Program and organization names stay in
-  English on purpose (Google mangles names), and a cost of just "Free" uses the
-  hand-written word.
+- **Listing text** comes from the two translation tabs: description, ages,
+  dates, hours and cost for activities; schedule and description for
+  organizations. `apps-script/Translate.gs` fills them as **plain text**
+  every 15 minutes (`translateListings`, on a time trigger made by
+  `setupTranslationTrigger`), remembering earlier translations so only new or
+  changed text goes to Google. New and edited listings appear in Spanish and
+  Portuguese within 15 minutes; until then they show in English.
+  Program and organization names stay in English on purpose (Google mangles
+  names), and a cost of just "Free" uses the hand-written word.
+- **Don't use `=GOOGLETRANSLATE()` formulas for these tabs.** They were tried
+  first: Google re-runs them when building the published copy and a
+  translation that isn't ready comes out blank, so most visitors got English
+  (the activities feed was empty 9 times in 12).
 - **Filtering never uses the translations**: badges, the Free toggle, dates
   and the calendar all read the English, so a bad translation can't hide a
   listing. A cell Google can't translate stays blank and the English shows.
-- If a translation tab's feed fails or takes over 5 seconds, listings show in
-  English; the interface stays translated.
-- The translation tabs read Live Activities columns B, D, F, I, J, K, R and
-  Live Organizations columns O and P by letter: after changing either Live
-  formula's columns, update them too.
+- If a translation feed arrives with no text in the visitor's language, the
+  guide asks again (up to four tries); if it still has none, or takes over 6
+  seconds, listings show in English and the interface stays translated.
+- `Translate.gs` finds Live tab columns by their header names (`TR_JOBS` at
+  the top). If a Live tab's header changes, update `TR_JOBS` to match; the
+  script logs and skips a tab it can't read rather than guessing.
 
 ## Rules that keep the site working
 

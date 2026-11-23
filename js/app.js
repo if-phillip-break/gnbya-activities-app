@@ -1377,9 +1377,20 @@ const programKey = (org, prog) => normKey(org) + "|" + normKey(prog);
 function fetchTranslations(dataset) {
   const url = TRANSLATION_CSV_URLS[dataset];
   if (LANG === "en" || !url) return Promise.resolve(null);
-  // Never hold the listings back for long: after 5 seconds, show English.
-  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
-  return Promise.race([fetchRecords(url).catch((e) => { console.warn("Translations unavailable; showing English.", e); return null; }), timeout]);
+  // A published copy can come back with the translation columns empty (seen
+  // while the tabs were formulas). If no cell in this language has text, ask
+  // again for a fresh copy, up to four tries, before settling for English.
+  const hasText = (records) => records.some((r) =>
+    Object.keys(r).some((k) => k.indexOf(LANG + ":") === 0 && goodText(r[k])));
+  const attempt = async (n) => {
+    const records = await fetchRecords(n ? url + "&try=" + n + "-" + Date.now() : url);
+    if (hasText(records) || n >= 3) return records;
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return attempt(n + 1);
+  };
+  // Never hold the listings back for long: after 6 seconds, show English.
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 6000));
+  return Promise.race([attempt(0).catch((e) => { console.warn("Translations unavailable; showing English.", e); return null; }), timeout]);
 }
 
 function applyTranslations(dataset, records) {
