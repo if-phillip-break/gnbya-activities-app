@@ -56,6 +56,8 @@ function world(opts = {}) {
 
   const props = Object.assign({ ORG_FORM_ID: 'FORM-123' }, opts.props || {});
   const failOn = new Set(opts.failOn || []);
+  let okCalls = 0, busyLeft = opts.busyFor || 0;
+  log.sleeps = [];
   const triggers = (opts.triggers || []).map((h) => ({ h }));
   const g = {
     console,
@@ -65,6 +67,9 @@ function world(opts = {}) {
       translate: (text, from, to, o) => {
         log.translateCalls.push({ text, from, to, o });
         if (failOn.has(text)) throw new Error('Service invoked too many times for one day: translate.');
+        if (busyLeft > 0) { busyLeft--; throw new Error('Service invoked too many times in a short time: translate. Try Utilities.sleep(1000) between calls.'); }
+        if (opts.limitAfter !== undefined && okCalls >= opts.limitAfter) throw new Error('Service invoked too many times in a short time: translate. Try Utilities.sleep(1000) between calls.');
+        okCalls++;
         return `[${to}] ${text}`;
       },
     },
@@ -80,6 +85,7 @@ function world(opts = {}) {
       DigestAlgorithm: { MD5: 'MD5' }, Charset: { UTF_8: 'UTF_8' },
       computeDigest: (alg, text) => [...crypto.createHash('md5').update(text, 'utf8').digest()].map((b) => (b > 127 ? b - 256 : b)),
       base64Encode: (bytes) => Buffer.from(bytes.map((b) => (b < 0 ? b + 256 : b))).toString('base64'),
+      sleep: (ms) => { log.sleeps.push(ms); if (g._clock) g._clock.t += ms; },
     },
     ScriptApp: {
       getProjectTriggers: () => triggers.map((t) => ({ getHandlerFunction: () => t.h, _t: t })),
@@ -92,6 +98,7 @@ function world(opts = {}) {
   vm.runInContext(fs.readFileSync(REPO + 'apps-script/Code.gs', 'utf8'), g, { filename: 'Code.gs' });
   vm.runInContext(fs.readFileSync(REPO + 'apps-script/OrgForm.gs', 'utf8'), g, { filename: 'OrgForm.gs' });
   vm.runInContext(fs.readFileSync(REPO + 'apps-script/Translate.gs', 'utf8'), g, { filename: 'Translate.gs' });
+  if (opts.clock) { g._clock = { t: 0 }; g.TR_now_ = () => g._clock.t; }
   return { g, log, props, triggers, live, liveOrgs, actTr, orgTr, others };
 }
 
@@ -178,8 +185,9 @@ console.log('\n# 7. A translation failure leaves that cell blank and is retried 
   check('the failure is logged', w.log.logs.some((l) => /Couldn't translate/.test(l)));
   const w2 = world({ liveActivities: [ACT_HEADERS.slice(), ...ACTS], props: Object.assign({}, w.props) });
   w2.g.translateListings();
-  check('next run (quota back) translates the text that failed, and only that', w2.actTr.rows[2][2] === '[es] A week at the zoo.' &&
-    w2.log.translateCalls.every((c) => c.text === 'A week at the zoo.'), JSON.stringify(w2.log.translateCalls.map((c) => c.text)));
+  const doneFirst = new Set(w.log.translateCalls.filter((c) => c.text !== 'A week at the zoo.').map((c) => c.to + '|' + c.text));
+  check('next run (quota back) translates what was left, including the text that failed, and never re-sends what was done', w2.actTr.rows[2][2] === '[es] A week at the zoo.' &&
+    w2.log.translateCalls.length > 0 && w2.log.translateCalls.every((c) => !doneFirst.has(c.to + '|' + c.text)), JSON.stringify(w2.log.translateCalls.map((c) => c.to + ':' + c.text)));
 }
 
 console.log('\n# 8. A missing tab or column writes nothing');
@@ -203,6 +211,44 @@ console.log('\n# 9. The trigger');
   const tr = w.triggers.filter((t) => t.h === 'translateListings');
   check('run twice: exactly one translateListings trigger, every 15 minutes', tr.length === 1 && tr[0].every === 15, JSON.stringify(w.triggers));
   check('the form-submit trigger is left alone', w.triggers.some((t) => t.h === 'handleFormSubmit'));
+}
+
+console.log('\n# 10. Pacing: Google\'s "too many times in a short time" limit');
+{
+  const LIVE = [ACT_HEADERS.slice(), ...ACTS];
+  // Calls are spaced out.
+  const w = world({ liveActivities: LIVE });
+  w.g.translateListings();
+  check('there is a pause between calls to Google (at least 300ms each)', w.log.sleeps.length >= w.log.translateCalls.length - 1 && w.log.sleeps.every((ms) => ms >= 300), JSON.stringify(w.log.sleeps.slice(0, 5)));
+  // A brief "busy": wait and retry once, and it succeeds.
+  const w2 = world({ liveActivities: LIVE, busyFor: 1 });
+  w2.g.translateListings();
+  check('one "too many times" error: it waits longer, retries, and nothing is left blank', w2.actTr.rows[1][2] === '[es] A FREE 6-week program.' &&
+    w2.log.sleeps.some((ms) => ms >= 1500) && !w2.actTr.rows.slice(1).some((r) => r.slice(2, 4).includes('')), JSON.stringify(w2.actTr.rows[1]));
+  // A lasting limit: stop calling for the rest of this run.
+  const w3 = world({ liveActivities: LIVE, liveOrgs: [ORG_HEADERS.slice(), ...ORGS], limitAfter: 3 });
+  w3.g.translateListings();
+  const after = w3.log.translateCalls.length;
+  check('a lasting limit: it stops calling after the retry fails (no flood of failing calls)', after <= 5, after);
+  check('what was translated before the limit is kept; the rest is blank for now', w3.actTr.rows[1][2] === '[es] A FREE 6-week program.' && w3.orgTr.rows[1][1] === '', JSON.stringify(w3.actTr.rows[1].slice(0, 4)));
+  check('the log says it stopped and will carry on next run', w3.log.logs.some((l) => /rate limit|next run/i.test(l)), JSON.stringify(w3.log.logs.slice(-3)));
+  // The next run (limit lifted) finishes the job, without redoing the done ones.
+  const w4 = world({ liveActivities: LIVE, liveOrgs: [ORG_HEADERS.slice(), ...ORGS], props: Object.assign({}, w3.props) });
+  w4.g.translateListings();
+  const redone = w4.log.translateCalls.filter((c) => c.text === 'A FREE 6-week program.' && c.to === 'es').length;
+  check('next run fills everything that was left, and never re-sends what was already translated', redone === 0 && w4.orgTr.rows[1][1] === '[es] 7 Days' && w4.actTr.rows[2][2] === '[es] A week at the zoo.', JSON.stringify(w4.orgTr.rows[1]));
+}
+
+console.log('\n# 11. A run stops itself before Apps Script\'s 6-minute limit');
+{
+  const many = [ACT_HEADERS.slice()];
+  for (let i = 0; i < 400; i++) many.push(actRow({ 'Organization Name': 'Org ' + i, 'Program Name': 'Prog ' + i, Description: 'Description number ' + i }));
+  const w = world({ liveActivities: many, clock: true });
+  const err = tryRun(() => w.g.translateListings());
+  const spent = w.g._clock.t;
+  check('no throw, and it stopped translating within 4.5 minutes of pausing (' + Math.round(spent / 1000) + 's)', err === null && spent <= 4.5 * 60 * 1000 + 2000, err || spent);
+  check('it still wrote the tab: every listing has a row, the untranslated ones blank for now', w.actTr.rows.length === 401 && w.actTr.rows[400][2] === '' && w.actTr.rows[1][2] === '[es] Description number 0', w.actTr.rows.length);
+  check('and says so in the log', w.log.logs.some((l) => /time|next run/i.test(l)), JSON.stringify(w.log.logs.slice(-2)));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

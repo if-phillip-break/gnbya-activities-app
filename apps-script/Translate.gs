@@ -56,6 +56,18 @@ const TR_JOBS = [
 // How often the trigger refreshes the tabs, in minutes (1, 5, 10, 15 or 30).
 const TR_EVERY_MINUTES = 15;
 
+// Google limits how fast a script may call Translate ("Service invoked too
+// many times in a short time"). Calls are spaced this far apart; after a
+// limit error the script waits TR_RETRY_PAUSE_MS and tries once more, and if
+// that fails too it stops calling for this run. The rest is picked up by the
+// next run, since everything already translated is remembered.
+const TR_PAUSE_MS = 400;
+const TR_RETRY_PAUSE_MS = 2000;
+
+// Apps Script stops a run after 6 minutes. Translating stops after this long;
+// the tabs are still written, with anything untranslated left blank for now.
+const TR_TIME_BUDGET_MS = 4.5 * 60 * 1000;
+
 // =====================================================================
 // Below here is the code. You shouldn't need to change anything.
 // =====================================================================
@@ -71,10 +83,11 @@ function translateListings() {
     const props = PropertiesService.getScriptProperties();
     const cache = TR_readCache_(props);
     const used = {};
-    const stats = { translated: 0, remembered: 0, failed: 0 };
+    const stats = { translated: 0, remembered: 0, failed: 0, waiting: 0, calls: 0, halted: "", started: TR_now_() };
     TR_JOBS.forEach((job) => TR_runJob_(ss, job, cache, used, stats));
     TR_saveCache_(props, cache, used);
-    Logger.log("Translations: " + stats.translated + " new, " + stats.remembered + " remembered, " + stats.failed + " failed.");
+    Logger.log("Translations: " + stats.translated + " new, " + stats.remembered + " remembered, " + stats.failed + " failed" +
+      (stats.waiting ? ", " + stats.waiting + " left for the next run (" + stats.halted + ")" : "") + ".");
   } finally {
     lock.releaseLock();
   }
@@ -141,16 +154,38 @@ function TR_translate_(text, lang, cache, used, stats) {
   const key = TR_CACHE_PREFIX + lang + ":" + TR_hash_(t);
   used[key] = true;
   if (Object.prototype.hasOwnProperty.call(cache, key)) { stats.remembered++; return cache[key]; }
-  try {
-    const result = LanguageApp.translate(t, "en", lang, { contentType: "text" });
-    cache[key] = result;
-    stats.translated++;
-    return result;
-  } catch (err) {
-    stats.failed++;
-    Logger.log("Couldn't translate into " + lang + ": " + err.message);
-    return "";
+  // Out of time, or Google asked us to slow down: leave it for the next run.
+  if (!stats.halted && TR_now_() - stats.started > TR_TIME_BUDGET_MS) {
+    stats.halted = "out of time for this run";
+    Logger.log("Stopped translating: out of time for this run. The next run carries on.");
   }
+  if (stats.halted) { stats.waiting++; return ""; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (stats.calls > 0 || attempt > 0) Utilities.sleep(attempt ? TR_RETRY_PAUSE_MS : TR_PAUSE_MS);
+    stats.calls++;
+    try {
+      const result = LanguageApp.translate(t, "en", lang, { contentType: "text" });
+      cache[key] = result;
+      stats.translated++;
+      return result;
+    } catch (err) {
+      const limited = /too many times/i.test(err.message);
+      if (limited && attempt === 0) continue; // wait longer, try once more
+      stats.failed++;
+      Logger.log("Couldn't translate into " + lang + ": " + err.message);
+      if (limited) {
+        stats.halted = "Google's rate limit";
+        Logger.log("Stopped translating: Google's rate limit. The next run carries on.");
+      }
+      return "";
+    }
+  }
+  return "";
+}
+
+// The clock, in one place so tests can move it.
+function TR_now_() {
+  return Date.now();
 }
 
 function TR_hash_(text) {
