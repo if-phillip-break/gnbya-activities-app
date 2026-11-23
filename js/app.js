@@ -385,19 +385,61 @@ function tagRow(categories) {
     .join("")}</div>`;
 }
 
-// A long description makes a card tall enough to push the next listing off the
-// screen, so the text clamps to a two-line preview and opens on click. Only
-// descriptions that actually overflow get the toggle — wireDescriptionClamps()
-// measures each one after it is in the DOM.
-function descriptionHTML(text, collapsible) {
-  if (!text) return "";
-  if (!collapsible) return `<p class="card-desc">${text}</p>`;
-  return `<div class="desc-block"><p class="card-desc clampable">${text}</p><button type="button" class="see-more-btn" aria-expanded="false" hidden>See more</button></div>`;
+// Each card has small tabs: Overview first (the facts a parent decides on),
+// then the longer material one tap away. Tabs with nothing to show are left
+// out, so no card ever opens an empty panel.
+let cardSeq = 0;
+
+function attr(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
 // The arrow is its own span so it can nudge on hover; the link reads the same.
 function actionLabel(text) {
   return `${text} <span class="card-action-arrow" aria-hidden="true">→</span>`;
+}
+
+// A long About text scrolls slowly by itself once its tab is open, and stops
+// the moment someone hovers, touches or scrolls it. wireCards() decides
+// whether it is long enough to need that.
+function aboutHTML(text) {
+  if (!text) return "";
+  return `
+    <div class="reader">
+      <div class="reader-box" tabindex="0"><p class="card-desc">${text}</p></div>
+      <div class="reader-bar" hidden>
+        <div class="reader-track"><div class="reader-fill"></div></div>
+        <button type="button" class="reader-btn" aria-pressed="false">Pause</button>
+      </div>
+    </div>`;
+}
+
+function detailList(rows) {
+  const filled = rows.filter(([, v]) => v);
+  if (!filled.length) return "";
+  return `<dl class="card-details">${filled.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
+}
+
+function cardHTML({ i, past, eyebrow, title, tabs, action }) {
+  const id = "c" + ++cardSeq;
+  const shown = tabs.filter((t) => t.html && t.html.trim());
+  return `
+    <article class="card${past ? " card-past" : ""}" style="--i:${i}">
+      <div class="card-top">
+        <div style="min-width:0">
+          ${eyebrow ? `<p class="card-org">${eyebrow}</p>` : ""}
+          <h2 class="card-title">${title}</h2>
+        </div>
+      </div>
+      <div class="card-tabs" role="tablist" aria-label="${attr(title)}">
+        ${shown.map((t, k) => `<button type="button" role="tab" id="${id}-t${k}" aria-controls="${id}-p${k}" aria-selected="${k === 0}" tabindex="${k === 0 ? 0 : -1}">${t.label}</button>`).join("")}
+        <span class="card-tabs-ink" aria-hidden="true"></span>
+      </div>
+      <div class="card-panels">
+        ${shown.map((t, k) => `<div class="card-panel" role="tabpanel" id="${id}-p${k}" aria-labelledby="${id}-t${k}"${k ? " hidden" : ""}>${t.html}</div>`).join("")}
+      </div>
+      ${action ? `<div class="card-footer">${action}</div>` : ""}
+    </article>`;
 }
 
 function programCardHTML(p, i = 0) {
@@ -423,32 +465,41 @@ function programCardHTML(p, i = 0) {
   if (p.schoolPickup) badges.push(badge("School pickup", "plain"));
   if (programHasLanguage(p)) badges.push(badge("Language support", "plain"));
 
-  return `
-    <article class="card${closed ? " card-past" : ""}" style="--i:${i}">
-      <div class="card-top">
-        <div style="min-width:0">
-          <p class="card-org">${p.organizationName}</p>
-          <h2 class="card-title">${p.programName}</h2>
-        </div>
-      </div>
+  const overview = `
+    <div class="fact-grid">
+      ${factCell("Ages", p.ageRange.display, { big: true })}
+      ${factCell("Cost", p.cost || (programIsFree(p) ? "Free" : null), { big: true, free: programIsFree(p) })}
+      ${factCell("Dates", p.sessionDates)}
+      ${factCell("Hours", p.hours)}
+    </div>
+    ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
+    ${tagRow(p.categories)}`;
 
-      <div class="fact-grid">
-        ${factCell("Ages", p.ageRange.display, { big: true })}
-        ${factCell("Cost", p.cost || (programIsFree(p) ? "Free" : null), { big: true, free: programIsFree(p) })}
-        ${factCell("Dates", p.sessionDates)}
-        ${factCell("Hours", p.hours)}
-      </div>
+  const gettingThere = [
+    p.busAccessible ? "Near an SRTA bus route" : "",
+    p.schoolPickup ? "Picks kids up from school" : "",
+  ].filter(Boolean).join(" · ");
+  const where = detailList([
+    ["Address", p.address],
+    ["Getting there", gettingThere],
+    ["Nearest bus stop", p.nearestBusRoute],
+  ]);
 
-      ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
-      ${tagRow(p.categories)}
-      ${descriptionHTML(p.description, activeTab === "current")}
-      ${p.address ? `<div class="card-address"><span class="address-marker" aria-hidden="true">◆</span><span>${p.address}</span></div>` : ""}
-
-      <div class="card-footer">
-        <div class="card-contact">${p.contact || ""}</div>
-        ${p.website ? `<a class="card-action" href="${p.website}" target="_blank" rel="noopener">${actionLabel(archived ? "Visit website" : "Sign up")}</a>` : ""}
-      </div>
-    </article>`;
+  return cardHTML({
+    i,
+    past: closed,
+    eyebrow: p.organizationName,
+    title: p.programName,
+    tabs: [
+      { label: "Overview", html: overview },
+      { label: "About", html: aboutHTML(p.description) },
+      { label: "Where", html: where },
+      { label: "Contact", html: detailList([["Contact", p.contact]]) },
+    ],
+    action: p.website
+      ? `<a class="card-action" href="${p.website}" target="_blank" rel="noopener">${actionLabel(archived ? "Visit website" : "Sign up")}</a>`
+      : "",
+  });
 }
 
 function orgCostSummary(o) {
@@ -468,31 +519,43 @@ function organizationCardHTML(o, i = 0) {
   const schedValue = o.schedule || (o.programModel.length ? o.programModel.join(" · ") : "");
   const isFree = o.cost.some((c) => /free/i.test(c));
 
-  return `
-    <article class="card" style="--i:${i}">
-      <div class="card-top">
-        <div style="min-width:0">
-          <h2 class="card-title">${o.name}</h2>
-        </div>
-      </div>
+  const overview = `
+    <div class="fact-grid">
+      ${factCell("Ages", ageBadgeText(o.minAge, o.maxAge, "All ages"), { big: true })}
+      ${factCell("Cost", orgCostSummary(o), { big: true, free: isFree })}
+      ${factCell("When", whenValue)}
+      ${factCell("Schedule", schedValue)}
+    </div>
+    ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
+    ${tagRow(o.categories)}`;
 
-      <div class="fact-grid">
-        ${factCell("Ages", ageBadgeText(o.minAge, o.maxAge, "All ages"), { big: true })}
-        ${factCell("Cost", orgCostSummary(o), { big: true, free: isFree })}
-        ${factCell("When", whenValue)}
-        ${factCell("Schedule", schedValue)}
-      </div>
+  const details = detailList([
+    ["Locations", o.location],
+    ["Programs", o.programModel.join(", ")],
+    ["Grades", o.gradeLevels.join(", ")],
+    ["Transportation", o.transportation.join(", ")],
+    ["Schools served", o.schoolsServed],
+  ]);
+  const join = detailList([
+    ["Registration", o.registration.join(", ")],
+    ["Cost options", o.cost.join(", ")],
+  ]);
 
-      ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
-      ${tagRow(o.categories)}
-      ${descriptionHTML(o.description, true)}
-      ${o.location ? `<div class="card-address"><span class="address-marker" aria-hidden="true">◆</span><span>${o.location}</span></div>` : ""}
-
-      <div class="card-footer">
-        <div class="card-contact">${o.registration.length ? "Registration: " + o.registration.join(", ") : ""}</div>
-        ${o.website ? `<a class="card-action" href="${o.website}" target="_blank" rel="noopener">${actionLabel("Visit website")}</a>` : ""}
-      </div>
-    </article>`;
+  return cardHTML({
+    i,
+    past: false,
+    eyebrow: "",
+    title: o.name,
+    tabs: [
+      { label: "Overview", html: overview },
+      { label: "About", html: aboutHTML(o.description) },
+      { label: "Details", html: details },
+      { label: "Join", html: join },
+    ],
+    action: o.website
+      ? `<a class="card-action" href="${o.website}" target="_blank" rel="noopener">${actionLabel("Visit website")}</a>`
+      : "",
+  });
 }
 
 // ---------- filter-bar rendering ----------
@@ -1056,7 +1119,7 @@ function applyFilters() {
   emptyStateEl.hidden = true;
   const cardFn = isProgramTab(activeTab) ? programCardHTML : organizationCardHTML;
   cardGridEl.innerHTML = list.map((item, i) => cardFn(item, i)).join("");
-  wireDescriptionClamps();
+  wireCards();
 }
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1081,33 +1144,141 @@ function showEmptyState(def) {
   emptyClearBtn.hidden = false;
 }
 
-// After cards are in the DOM, reveal a "See more" toggle only on descriptions
-// that actually overflow their clamped height — short ones show in full.
-function wireDescriptionClamps() {
-  cardGridEl.querySelectorAll(".desc-block").forEach((block) => {
-    const desc = block.querySelector(".card-desc.clampable");
-    const btn = block.querySelector(".see-more-btn");
-    if (!desc || !btn) return;
-    if (desc.scrollHeight <= desc.clientHeight + 2) {
-      btn.hidden = true;
-      return;
-    }
-    btn.hidden = false;
-    btn.addEventListener("click", () => {
-      const before = desc.offsetHeight;
-      const expanded = desc.classList.toggle("expanded");
-      btn.textContent = expanded ? "See less" : "See more";
-      btn.setAttribute("aria-expanded", String(expanded));
-      // Glide between the two heights instead of jumping.
-      const after = desc.offsetHeight;
-      if (!reduceMotion.matches && desc.animate && before !== after) {
-        desc.animate(
-          [{ height: before + "px", overflow: "hidden" }, { height: after + "px", overflow: "hidden" }],
-          { duration: 260, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" }
-        );
+// After cards are in the DOM: wire each card's tabs (click and arrow keys),
+// place the sliding underline, and set up the About text's gentle scroll.
+function wireCards() {
+  cardGridEl.querySelectorAll(".card").forEach((card) => {
+    const list = card.querySelector(".card-tabs");
+    const btns = [...card.querySelectorAll('.card-tabs [role="tab"]')];
+    const panels = [...card.querySelectorAll(".card-panel")];
+    const box = card.querySelector(".card-panels");
+    if (!list || !btns.length) return;
+    // A single tab needs no tab bar.
+    if (btns.length === 1) { list.hidden = true; return; }
+    let cur = 0;
+    const go = (k, focus) => {
+      if (k === cur) return;
+      const from = box.offsetHeight;
+      panels[cur].hidden = true;
+      btns[cur].setAttribute("aria-selected", "false");
+      btns[cur].tabIndex = -1;
+      const panel = panels[k];
+      panel.classList.remove("in-right", "in-left");
+      panel.hidden = false;
+      void panel.offsetWidth;
+      if (!reduceMotion.matches) panel.classList.add(k > cur ? "in-right" : "in-left");
+      btns[k].setAttribute("aria-selected", "true");
+      btns[k].tabIndex = 0;
+      if (focus) btns[k].focus();
+      cur = k;
+      placeTabInk(list);
+      const reader = panel.querySelector(".reader");
+      if (reader) startReader(reader);
+      const to = box.offsetHeight;
+      if (!reduceMotion.matches && box.animate && from !== to) {
+        box.animate([{ height: from + "px" }, { height: to + "px" }], { duration: 380, easing: "cubic-bezier(0.32, 0.72, 0, 1)" });
       }
+    };
+    btns.forEach((b, k) => {
+      b.addEventListener("click", () => go(k, false));
+      b.addEventListener("keydown", (e) => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (step) { e.preventDefault(); go((cur + step + btns.length) % btns.length, true); }
+        else if (e.key === "Home") { e.preventDefault(); go(0, true); }
+        else if (e.key === "End") { e.preventDefault(); go(btns.length - 1, true); }
+      });
     });
+    placeTabInk(list);
   });
+}
+
+function placeTabInk(list) {
+  const ink = list.querySelector(".card-tabs-ink");
+  const active = list.querySelector('[aria-selected="true"]');
+  if (!ink || !active) return;
+  ink.style.width = active.offsetWidth + "px";
+  ink.style.transform = `translateX(${active.offsetLeft}px)`;
+}
+
+function placeAllTabInks() {
+  cardGridEl.querySelectorAll(".card-tabs").forEach(placeTabInk);
+}
+
+// The About text: if it is longer than its box, it scrolls slowly (like a
+// teleprompter) with a progress line, pausing on hover, touch, focus or a
+// scroll by the reader, with a Pause/Play button. Short text sits still.
+// Each card's loop stops once its About tab is closed or the card is redrawn.
+const READER_SPEED = 16; // pixels per second: slow enough to read along
+
+function startReader(reader) {
+  const box = reader.querySelector(".reader-box");
+  const bar = reader.querySelector(".reader-bar");
+  const fill = reader.querySelector(".reader-fill");
+  const btn = reader.querySelector(".reader-btn");
+  const max = () => box.scrollHeight - box.clientHeight;
+  if (max() < 8) { reader.classList.add("short"); return; }
+  bar.hidden = false;
+  const sync = () => { const m = max(); fill.style.width = (m > 0 ? (box.scrollTop / m) * 100 : 0).toFixed(1) + "%"; };
+  if (reader.dataset.wired) { reader._resume && reader._resume(); sync(); return; }
+  reader.dataset.wired = "1";
+
+  if (reduceMotion.matches) {
+    btn.hidden = true;
+    bar.insertAdjacentHTML("beforeend", '<span class="reader-hint">Scroll to read</span>');
+    box.addEventListener("scroll", sync, { passive: true });
+    sync();
+    return;
+  }
+
+  let userPaused = false, hover = false, returning = false, running = false;
+  let pos = box.scrollTop, last = 0, holdUntil = performance.now() + 1400;
+  const panel = reader.closest(".card-panel");
+  const setBtn = () => { btn.textContent = userPaused ? "Play" : "Pause"; btn.setAttribute("aria-pressed", String(userPaused)); };
+
+  const tick = (t) => {
+    if (!box.isConnected || panel.hidden) { running = false; return; }
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+    last = t;
+    if (!userPaused && !hover && !returning && t > holdUntil) {
+      pos = Math.min(max(), pos + READER_SPEED * dt);
+      box.scrollTop = pos;
+      if (pos >= max() - 0.5) {
+        // At the end: rest, glide back to the top, rest again, repeat.
+        returning = true;
+        setTimeout(() => {
+          box.scrollTo({ top: 0, behavior: "smooth" });
+          setTimeout(() => { pos = 0; returning = false; holdUntil = performance.now() + 1800; }, 900);
+        }, 2600);
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+  const run = () => { if (running) return; running = true; last = 0; requestAnimationFrame(tick); };
+  reader._resume = () => { holdUntil = performance.now() + 1200; pos = box.scrollTop; run(); };
+
+  // Only a real scroll by the reader moves the position; the browser's own
+  // rounding of each small step must not (it would speed the scroll up).
+  box.addEventListener("scroll", () => {
+    if (!returning && Math.abs(box.scrollTop - pos) > 2) { pos = box.scrollTop; holdUntil = performance.now() + 2500; }
+    sync();
+  }, { passive: true });
+  const card = reader.closest(".card");
+  const hold = () => { hover = true; };
+  const release = () => { hover = false; holdUntil = performance.now() + 1200; pos = box.scrollTop; };
+  card.addEventListener("pointerenter", hold);
+  card.addEventListener("pointerleave", release);
+  card.addEventListener("focusin", hold);
+  card.addEventListener("focusout", (e) => { if (!card.contains(e.relatedTarget)) release(); });
+  box.addEventListener("touchstart", hold, { passive: true });
+  box.addEventListener("touchend", () => setTimeout(release, 2500), { passive: true });
+  btn.addEventListener("click", () => {
+    userPaused = !userPaused;
+    setBtn();
+    if (!userPaused) { holdUntil = performance.now() + 400; pos = box.scrollTop; }
+  });
+  setBtn();
+  sync();
+  run();
 }
 
 function setActiveTab(tab) {
@@ -1189,8 +1360,11 @@ const filterBarEl = document.querySelector(".filter-bar");
 const markScrolled = () => filterBarEl.classList.toggle("scrolled", window.scrollY > 4);
 window.addEventListener("scroll", markScrolled, { passive: true });
 markScrolled();
-if (window.ResizeObserver) new ResizeObserver(() => placeSegIndicator(false)).observe(tabsEl);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSegIndicator(false));
+if (window.ResizeObserver) {
+  new ResizeObserver(() => placeSegIndicator(false)).observe(tabsEl);
+  new ResizeObserver(placeAllTabInks).observe(cardGridEl);
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeSegIndicator(false); placeAllTabInks(); });
 clearAllBtn.addEventListener("click", clearAll);
 archiveNoteBtn.addEventListener("click", () => setActiveTab("current"));
 emptyClearBtn.addEventListener("click", clearAll);
