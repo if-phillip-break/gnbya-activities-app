@@ -41,44 +41,14 @@
   --bar-bg: rgba(244, 247, 245, 0.86);
   --bar-bg-solid: rgba(244, 247, 245, 0.94);
   --bar-shadow: 0 8px 24px -16px rgba(18, 53, 31, 0.45);
+  /* Every card is this tall; anything longer scrolls inside its own box. */
+  --card-h: 560px;
+  --tile-h: 88px;
 }
 
-/* Dark mode: follows the device unless the visitor picked a theme with the
-   switch (js/theme.js sets data-theme on <html>). Only tokens change here. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --green: #1E8546;
-    --green-dark: #23964F;
-    --green-text: #5BCB85;
-    --good-text: #6FD394;
-    --ink-green: #DDEFE3;
-    --blue: #7DBBEA;
-    --blue-hover: #A6D2F3;
-    --page: #0F1712;
-    --surface: #17211B;
-    --raised: #2A3A30;
-    --subtle: #1C2A21;
-    --subtle-2: #1A251E;
-    --footer-bg: #131D17;
-    --border: #2A3A30;
-    --border-2: #34473A;
-    --border-hover: #46604F;
-    --card-hover-border: #3E5848;
-    --hairline: #26352C;
-    --divider: #1F2C24;
-    --text: #E6EFE9;
-    --text-2: #B8C8BE;
-    --muted: #A3B5AA;
-    --faint: #8DA096;
-    --green-tint: #1F3B29;
-    --bar-bg: rgba(15, 23, 18, 0.82);
-    --bar-bg-solid: rgba(15, 23, 18, 0.94);
-    --bar-shadow: 0 8px 24px -14px rgba(0, 0, 0, 0.7);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 14px 32px -12px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.25);
-    color-scheme: dark;
-  }
-}
+/* Dark mode: only when the visitor turns it on with the switch (js/theme.js
+   sets data-theme="dark" on <html>). Light is the default. Only tokens
+   change here. */
 :root[data-theme="dark"] {
   --green: #1E8546;
   --green-dark: #23964F;
@@ -728,6 +698,7 @@ input, button, select { font-family: inherit; }
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.3s var(--ease-out), border-color 0.3s ease, transform 0.3s var(--ease-out), opacity 0.3s ease;
   overflow-wrap: break-word;
+  height: var(--card-h);
   /* So .fact-grid can size itself against the card instead of the window. A
      card is ~300px wide in a 3-up desktop layout and ~290px on a phone, so the
      window width never told us what we actually needed to know. */
@@ -791,7 +762,16 @@ input, button, select { font-family: inherit; }
    better on every real listing -- and when neither can be satisfied the
    container query further down drops the grid to a single column, so
    nothing has to be clipped to make room. */
-.fact-cell { background: var(--subtle-2); border: 1px solid var(--hairline); border-radius: 12px; padding: 10px 12px; }
+.fact-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: var(--tile-h);
+  background: var(--subtle-2);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
 
 .fact-label {
   font-size: 11px;
@@ -802,12 +782,18 @@ input, button, select { font-family: inherit; }
 }
 
 .fact-value {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  hyphens: auto;
   font-size: 14px;
   font-weight: 600;
   margin-top: 3px;
   line-height: 1.3;
   color: var(--text);
 }
+.fact-value::-webkit-scrollbar { display: none; }
 .fact-value.big {
   font-family: "Montserrat", sans-serif;
   font-size: 19px;
@@ -1044,9 +1030,7 @@ input:focus-visible {
    those past the grid, where overflow:hidden cut up to 35px off them with
    nothing on screen to show it had. Full width fits them, and the dates cell
    stops being a one-word-per-line ribbon. */
-@container (max-width: 312px) {
-  .fact-grid { grid-template-columns: 1fr; }
-}
+
 
 /* ---------------- Filter sheet ----------------
    Every width opens the refinements here rather than expanding them inside the
@@ -1325,9 +1309,54 @@ body.sheet-lock { overflow: hidden; }
 }
 .card-grid[data-motion="filter"] > .card { animation: fade-in 0.28s ease-out backwards; }
 
-/* The page header settles in once on load. */
-.page-title { animation: rise-in 0.7s var(--ease-out) backwards; }
-.getting-started { animation: rise-in 0.7s var(--ease-out) 0.08s backwards; }
+/* On load, the heading and Getting started arrive slightly enlarged and
+   glowing, then settle into place. The step numbers pop in one by one. */
+@keyframes title-intro {
+  0% { opacity: 0; transform: translateY(14px) scale(1.07); }
+  45% { opacity: 1; transform: translateY(0) scale(1.05); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes gs-intro {
+  0% { opacity: 0; transform: translateY(18px) scale(1.04); box-shadow: 0 0 0 0 rgba(21, 127, 61, 0); }
+  40% { opacity: 1; transform: translateY(0) scale(1.035); box-shadow: 0 0 0 6px rgba(21, 127, 61, 0.18), 0 22px 44px -20px rgba(21, 127, 61, 0.5); }
+  100% { opacity: 1; transform: none; box-shadow: 0 0 0 0 rgba(21, 127, 61, 0); }
+}
+@keyframes num-pop {
+  0% { opacity: 0; transform: scale(0.3); }
+  65% { opacity: 1; transform: scale(1.22); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.page-title { transform-origin: left bottom; animation: title-intro 1.5s var(--ease-out) backwards; }
+.header-left .theme-toggle { animation: fade-in 0.6s ease-out 0.7s backwards; }
+.getting-started { transform-origin: center; animation: gs-intro 1.7s var(--ease-out) 0.15s backwards; }
+.gs-list li { animation: rise-in 0.5s var(--ease-out) backwards; }
+.gs-list li:nth-child(1) { animation-delay: 0.45s; }
+.gs-list li:nth-child(2) { animation-delay: 0.6s; }
+.gs-list li:nth-child(3) { animation-delay: 0.75s; }
+.gs-list li .gs-num { animation: num-pop 0.55s var(--ease-out) backwards; }
+.gs-list li:nth-child(1) .gs-num { animation-delay: 0.55s; }
+.gs-list li:nth-child(2) .gs-num { animation-delay: 0.7s; }
+.gs-list li:nth-child(3) .gs-num { animation-delay: 0.85s; }
+
+/* Then a soft green pulse travels across search, Filters and age, so a
+   parent notices the controls exist. Once per page load. */
+@keyframes spotlight {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(21, 127, 61, 0); }
+  40% { box-shadow: 0 0 0 5px rgba(21, 127, 61, 0.22), 0 6px 18px -8px rgba(21, 127, 61, 0.5); }
+}
+@keyframes spotlight-bump {
+  0%, 100% { transform: none; box-shadow: 0 0 0 0 rgba(21, 127, 61, 0); }
+  40% { transform: scale(1.06); box-shadow: 0 0 0 5px rgba(21, 127, 61, 0.24), 0 6px 18px -8px rgba(21, 127, 61, 0.55); }
+}
+@keyframes filters-nudge {
+  0%, 100% { transform: none; }
+  30% { transform: rotate(-12deg); }
+  60% { transform: rotate(10deg); }
+}
+.search-input { animation: spotlight 1.1s ease-in-out 1.2s; }
+.filters-toggle { animation: spotlight-bump 0.9s var(--ease-out) 1.6s 2; }
+.filters-icon { animation: filters-nudge 0.6s ease-in-out 1.7s 2; }
+.age-group { animation: spotlight 1.1s ease-in-out 2.3s; }
 
 /* Things that appear on demand fade or pop in. */
 .facet-menu { transform-origin: top left; animation: pop-in 0.2s var(--ease-out); }
@@ -1341,7 +1370,7 @@ body.sheet-lock { overflow: hidden; }
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 300px;
+  height: var(--card-h);
   padding: 22px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1463,8 +1492,20 @@ body.sheet-lock { overflow: hidden; }
 }
 /* overflow hidden clips the panel while its height animates; the 3px of
    padding keeps focus rings inside from being clipped with it. */
-.card-panels { position: relative; overflow: hidden; margin: -3px; padding: 3px; }
-.card-panel { display: flex; flex-direction: column; gap: 14px; }
+.card-panels { position: relative; overflow: hidden; margin: -3px; padding: 3px; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.card-panel { display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; min-height: 0; }
+.card-panel > .fact-grid { flex: none; }
+/* Badges and categories share what's left under the tiles. */
+.overview-more { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 10px; }
+.overview-more::-webkit-scrollbar { display: none; }
+/* Where, Contact, Details, Join. */
+.panel-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
+/* A soft fade at the bottom edge says "there's more", only on boxes that
+   are actually longer than their space (app.js sets is-long). */
+.auto-scroll.is-long {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent 100%);
+}
 .card-panel.in-right { animation: tab-in-right 0.38s var(--ease-spring); }
 .card-panel.in-left { animation: tab-in-left 0.38s var(--ease-spring); }
 @keyframes tab-in-right { from { opacity: 0; transform: translateX(22px); } }
@@ -1493,8 +1534,10 @@ body.sheet-lock { overflow: hidden; }
 }
 
 /* ---------------- About: gentle auto-scroll ---------------- */
+.reader { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .reader-box {
-  max-height: 180px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   padding-right: 4px;
@@ -1503,7 +1546,7 @@ body.sheet-lock { overflow: hidden; }
 }
 .reader-box .card-desc { white-space: pre-line; }
 .reader.short .reader-box { max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; }
-.reader-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.reader-bar { flex: none; display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .reader-track { flex: 1; height: 3px; border-radius: 3px; background: var(--hairline); overflow: hidden; }
 .reader-fill { height: 100%; width: 0; background: var(--green-text); border-radius: 3px; }
 .reader-btn {

@@ -370,7 +370,7 @@ function factCell(label, value, opts = {}) {
   return `
     <div class="fact-cell">
       <div class="fact-label">${label}</div>
-      <div class="${cls}">${value || "—"}</div>
+      <div class="${cls} auto-scroll">${value || "—"}</div>
     </div>`;
 }
 
@@ -406,7 +406,7 @@ function aboutHTML(text) {
   if (!text) return "";
   return `
     <div class="reader">
-      <div class="reader-box" tabindex="0"><p class="card-desc">${text}</p></div>
+      <div class="reader-box auto-scroll" tabindex="0"><p class="card-desc">${text}</p></div>
       <div class="reader-bar" hidden>
         <div class="reader-track"><div class="reader-fill"></div></div>
         <button type="button" class="reader-btn" aria-pressed="false">Pause</button>
@@ -417,7 +417,7 @@ function aboutHTML(text) {
 function detailList(rows) {
   const filled = rows.filter(([, v]) => v);
   if (!filled.length) return "";
-  return `<dl class="card-details">${filled.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
+  return `<div class="panel-scroll auto-scroll" tabindex="0"><dl class="card-details">${filled.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>`;
 }
 
 function cardHTML({ i, past, eyebrow, title, tabs, action }) {
@@ -472,8 +472,10 @@ function programCardHTML(p, i = 0) {
       ${factCell("Dates", p.sessionDates)}
       ${factCell("Hours", p.hours)}
     </div>
-    ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
-    ${tagRow(p.categories)}`;
+    <div class="overview-more auto-scroll">
+      ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
+      ${tagRow(p.categories)}
+    </div>`;
 
   const gettingThere = [
     p.busAccessible ? "Near an SRTA bus route" : "",
@@ -526,8 +528,10 @@ function organizationCardHTML(o, i = 0) {
       ${factCell("When", whenValue)}
       ${factCell("Schedule", schedValue)}
     </div>
-    ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
-    ${tagRow(o.categories)}`;
+    <div class="overview-more auto-scroll">
+      ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
+      ${tagRow(o.categories)}
+    </div>`;
 
   const details = detailList([
     ["Locations", o.location],
@@ -1145,20 +1149,22 @@ function showEmptyState(def) {
 }
 
 // After cards are in the DOM: wire each card's tabs (click and arrow keys),
-// place the sliding underline, and set up the About text's gentle scroll.
+// place the sliding underline, and hand every box that can overflow to the
+// shared auto-scroller below.
 function wireCards() {
+  if (cardObserver) cardObserver.disconnect();
   cardGridEl.querySelectorAll(".card").forEach((card) => {
+    if (cardObserver) cardObserver.observe(card);
+    card.querySelectorAll(".auto-scroll").forEach((el) => registerScroller(el));
     const list = card.querySelector(".card-tabs");
     const btns = [...card.querySelectorAll('.card-tabs [role="tab"]')];
     const panels = [...card.querySelectorAll(".card-panel")];
-    const box = card.querySelector(".card-panels");
     if (!list || !btns.length) return;
     // A single tab needs no tab bar.
     if (btns.length === 1) { list.hidden = true; return; }
     let cur = 0;
     const go = (k, focus) => {
       if (k === cur) return;
-      const from = box.offsetHeight;
       panels[cur].hidden = true;
       btns[cur].setAttribute("aria-selected", "false");
       btns[cur].tabIndex = -1;
@@ -1172,12 +1178,13 @@ function wireCards() {
       if (focus) btns[k].focus();
       cur = k;
       placeTabInk(list);
+      // A tab just opened: give its text a moment before it starts moving,
+      // and show the About progress line only if there is more to read.
+      panel.querySelectorAll(".auto-scroll").forEach((el) => {
+        if (el._scroller) { el._scroller.hold = performance.now() + 1600; el._scroller.pos = el.scrollTop; }
+      });
       const reader = panel.querySelector(".reader");
-      if (reader) startReader(reader);
-      const to = box.offsetHeight;
-      if (!reduceMotion.matches && box.animate && from !== to) {
-        box.animate([{ height: from + "px" }, { height: to + "px" }], { duration: 380, easing: "cubic-bezier(0.32, 0.72, 0, 1)" });
-      }
+      if (reader) showReaderBar(reader);
     };
     btns.forEach((b, k) => {
       b.addEventListener("click", () => go(k, false));
@@ -1204,81 +1211,107 @@ function placeAllTabInks() {
   cardGridEl.querySelectorAll(".card-tabs").forEach(placeTabInk);
 }
 
-// The About text: if it is longer than its box, it scrolls slowly (like a
-// teleprompter) with a progress line, pausing on hover, touch, focus or a
-// scroll by the reader, with a Pause/Play button. Short text sits still.
-// Each card's loop stops once its About tab is closed or the card is redrawn.
-const READER_SPEED = 16; // pixels per second: slow enough to read along
-
-function startReader(reader) {
+// The About tab's progress line and Pause button, shown only when the text is
+// longer than its box. With reduced motion there's no auto-scroll, so it
+// says "Scroll to read" instead.
+function showReaderBar(reader) {
   const box = reader.querySelector(".reader-box");
   const bar = reader.querySelector(".reader-bar");
   const fill = reader.querySelector(".reader-fill");
   const btn = reader.querySelector(".reader-btn");
-  const max = () => box.scrollHeight - box.clientHeight;
-  if (max() < 8) { reader.classList.add("short"); return; }
+  if (box.scrollHeight - box.clientHeight < 4) { bar.hidden = true; return; }
   bar.hidden = false;
-  const sync = () => { const m = max(); fill.style.width = (m > 0 ? (box.scrollTop / m) * 100 : 0).toFixed(1) + "%"; };
-  if (reader.dataset.wired) { reader._resume && reader._resume(); sync(); return; }
+  const sync = () => {
+    const m = box.scrollHeight - box.clientHeight;
+    fill.style.width = (m > 0 ? (box.scrollTop / m) * 100 : 0).toFixed(1) + "%";
+  };
+  if (reader.dataset.wired) { sync(); return; }
   reader.dataset.wired = "1";
-
-  if (reduceMotion.matches) {
+  box.addEventListener("scroll", sync, { passive: true });
+  const st = box._scroller;
+  if (!st) {
     btn.hidden = true;
     bar.insertAdjacentHTML("beforeend", '<span class="reader-hint">Scroll to read</span>');
-    box.addEventListener("scroll", sync, { passive: true });
-    sync();
-    return;
+  } else {
+    const setBtn = () => { btn.textContent = st.userPaused ? "Play" : "Pause"; btn.setAttribute("aria-pressed", String(st.userPaused)); };
+    btn.addEventListener("click", () => {
+      st.userPaused = !st.userPaused;
+      if (!st.userPaused) { st.hold = performance.now() + 400; st.pos = box.scrollTop; }
+      setBtn();
+    });
+    setBtn();
   }
+  sync();
+}
 
-  let userPaused = false, hover = false, returning = false, running = false;
-  let pos = box.scrollTop, last = 0, holdUntil = performance.now() + 1400;
-  const panel = reader.closest(".card-panel");
-  const setBtn = () => { btn.textContent = userPaused ? "Play" : "Pause"; btn.setAttribute("aria-pressed", String(userPaused)); };
+// ---------- gentle auto-scroll ----------
+// Cards are all one height, so anything longer than its box (a long Dates
+// value, many category tags, the About text, a long address list) scrolls
+// slowly inside it: a short rest, down at reading pace, a rest at the end,
+// a glide back to the top, repeat. It only runs for cards on screen and in
+// the open tab, and holds still while the card is hovered or has focus, or
+// for a moment after someone scrolls or touches it. With reduced motion
+// nothing moves; the boxes simply scroll by hand.
+const SCROLL_SPEED = 16; // pixels per second: slow enough to read along
+const scrollers = new Set();
+let scrollLoopOn = false;
+let lastStep = 0;
+const visibleCards = new WeakSet();
+const cardObserver = "IntersectionObserver" in window
+  ? new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (e.isIntersecting) visibleCards.add(e.target); else visibleCards.delete(e.target);
+    }), { threshold: 0.15 })
+  : null;
 
-  const tick = (t) => {
-    if (!box.isConnected || panel.hidden) { running = false; return; }
-    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
-    last = t;
-    if (!userPaused && !hover && !returning && t > holdUntil) {
-      pos = Math.min(max(), pos + READER_SPEED * dt);
-      box.scrollTop = pos;
-      if (pos >= max() - 0.5) {
-        // At the end: rest, glide back to the top, rest again, repeat.
-        returning = true;
-        setTimeout(() => {
-          box.scrollTo({ top: 0, behavior: "smooth" });
-          setTimeout(() => { pos = 0; returning = false; holdUntil = performance.now() + 1800; }, 900);
-        }, 2600);
-      }
-    }
-    requestAnimationFrame(tick);
+function registerScroller(el) {
+  if (reduceMotion.matches) return null;
+  const st = {
+    el,
+    card: el.closest(".card"),
+    pos: el.scrollTop,
+    // Tiles wait a little longer than the main text, so a card doesn't
+    // start moving everywhere at once.
+    hold: performance.now() + (el.classList.contains("fact-value") ? 2600 : 1800),
+    returning: false,
+    userPaused: false,
   };
-  const run = () => { if (running) return; running = true; last = 0; requestAnimationFrame(tick); };
-  reader._resume = () => { holdUntil = performance.now() + 1200; pos = box.scrollTop; run(); };
-
+  el._scroller = st;
   // Only a real scroll by the reader moves the position; the browser's own
   // rounding of each small step must not (it would speed the scroll up).
-  box.addEventListener("scroll", () => {
-    if (!returning && Math.abs(box.scrollTop - pos) > 2) { pos = box.scrollTop; holdUntil = performance.now() + 2500; }
-    sync();
+  el.addEventListener("scroll", () => {
+    if (!st.returning && Math.abs(el.scrollTop - st.pos) > 2) { st.pos = el.scrollTop; st.hold = performance.now() + 2500; }
   }, { passive: true });
-  const card = reader.closest(".card");
-  const hold = () => { hover = true; };
-  const release = () => { hover = false; holdUntil = performance.now() + 1200; pos = box.scrollTop; };
-  card.addEventListener("pointerenter", hold);
-  card.addEventListener("pointerleave", release);
-  card.addEventListener("focusin", hold);
-  card.addEventListener("focusout", (e) => { if (!card.contains(e.relatedTarget)) release(); });
-  box.addEventListener("touchstart", hold, { passive: true });
-  box.addEventListener("touchend", () => setTimeout(release, 2500), { passive: true });
-  btn.addEventListener("click", () => {
-    userPaused = !userPaused;
-    setBtn();
-    if (!userPaused) { holdUntil = performance.now() + 400; pos = box.scrollTop; }
+  el.addEventListener("touchstart", () => { st.hold = performance.now() + 4000; }, { passive: true });
+  scrollers.add(st);
+  if (!scrollLoopOn) { scrollLoopOn = true; requestAnimationFrame(stepScrollers); }
+  return st;
+}
+
+function stepScrollers(t) {
+  const dt = lastStep ? Math.min(0.05, (t - lastStep) / 1000) : 0;
+  lastStep = t;
+  scrollers.forEach((st) => {
+    const el = st.el;
+    if (!el.isConnected) { scrollers.delete(st); return; }
+    if (cardObserver && !visibleCards.has(st.card)) return;
+    if (!el.offsetParent) return; // inside a closed tab
+    const max = el.scrollHeight - el.clientHeight;
+    const long = max >= 4;
+    if (el.classList.contains("is-long") !== long) el.classList.toggle("is-long", long);
+    if (!long || st.userPaused || st.returning || t < st.hold) return;
+    if (st.card.matches(":hover") || st.card.contains(document.activeElement)) { st.hold = t + 1200; return; }
+    st.pos = Math.min(max, st.pos + SCROLL_SPEED * dt);
+    el.scrollTop = st.pos;
+    if (st.pos >= max - 0.5) {
+      st.returning = true;
+      setTimeout(() => {
+        el.scrollTo({ top: 0, behavior: "smooth" });
+        setTimeout(() => { st.pos = 0; st.returning = false; st.hold = performance.now() + 2200; }, 900);
+      }, 2600);
+    }
   });
-  setBtn();
-  sync();
-  run();
+  if (scrollers.size) requestAnimationFrame(stepScrollers);
+  else { scrollLoopOn = false; lastStep = 0; }
 }
 
 function setActiveTab(tab) {
