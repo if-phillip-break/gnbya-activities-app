@@ -9,18 +9,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="js/theme.js"></script>
+  <script src="js/i18n.js" defer></script>
 </head>
 <body>
 
   <!-- ============ Header ============ -->
   <header class="site-header">
     <div class="container partner-header">
-      <h1 class="page-title">For partner organizations</h1>
+      <h1 class="page-title" data-i18n>For partner organizations</h1>
       <button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false">
         <span class="theme-track" aria-hidden="true"><span class="theme-thumb"></span></span>
-        <span class="theme-label">Dark mode</span>
+        <span class="theme-label" data-i18n>Dark mode</span>
       </button>
-      <p class="partner-intro">The GNBYA Activities Guide helps Greater New Bedford families find camps, programs and organizations for their kids, and every listing comes from partners like you.</p>
+      <p class="partner-intro" data-i18n>The GNBYA Activities Guide helps Greater New Bedford families find camps, programs and organizations for their kids, and every listing comes from partners like you.</p>
     </div>
   </header>
 
@@ -31,37 +32,37 @@
     <ul class="partner-actions">
       <li>
         <a class="partner-action" href="https://docs.google.com/forms/d/e/1FAIpQLSczQNQgLsl0sCQ3WruIHg8wsxLX1mLU42zEQ6Rwk1emA01kGQ/viewform" target="_blank" rel="noopener">
-          <span class="partner-action-title">Add or update your organization</span>
+          <span class="partner-action-title" data-i18n>Add or update your organization</span>
           <!-- Submitting this form again makes a second organization, so
                organizations already listed are steered to their private link. -->
-          <span class="partner-action-line">New to the guide? Fill this in once. Already listed? Use the private link we emailed you.</span>
+          <span class="partner-action-line" data-i18n>New to the guide? Fill this in once. Already listed? Use the private link we emailed you.</span>
         </a>
       </li>
       <li>
         <a class="partner-action" href="https://docs.google.com/forms/d/e/1FAIpQLSfdfzPU5pxm5AUNohRZTIFBdYFLA-DmH7OSvtq5z2YPwmvPqQ/viewform" target="_blank" rel="noopener">
-          <span class="partner-action-title">Add an activity</span>
-          <span class="partner-action-line">List a program, camp or class, with its ages, dates and cost.</span>
+          <span class="partner-action-title" data-i18n>Add an activity</span>
+          <span class="partner-action-line" data-i18n>List a program, camp or class, with its ages, dates and cost.</span>
         </a>
       </li>
       <li>
         <a class="partner-action" href="https://docs.google.com/forms/d/e/1FAIpQLSdQnNiDNbKzuEFgSB4nKlcCWaCwXGXbhoJR01wm49WUcbcIcw/viewform" target="_blank" rel="noopener">
-          <span class="partner-action-title">Lost your edit links?</span>
-          <span class="partner-action-line">Enter your email and we'll send you the links to everything you manage.</span>
+          <span class="partner-action-title" data-i18n>Lost your edit links?</span>
+          <span class="partner-action-line" data-i18n>Enter your email and we'll send you the links to everything you manage.</span>
         </a>
       </li>
     </ul>
 
-    <p class="partner-note">After you submit, we'll email you a private link to update your listing anytime.</p>
+    <p class="partner-note" data-i18n>After you submit, we'll email you a private link to update your listing anytime.</p>
 
-    <a class="partner-back" href="./">&larr; Back to the activities guide</a>
+    <a class="partner-back" href="./" data-i18n>&larr; Back to the activities guide</a>
   </main>
 
   <!-- ============ Footer ============ -->
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div class="footer-help">Need help choosing or applying? Email <a href="mailto:lead@gnbya.org">lead@gnbya.org</a>.</div>
+      <div class="footer-help" data-i18n="Need help choosing or applying? Email lead@gnbya.org." data-i18n-html>Need help choosing or applying? Email <a href="mailto:lead@gnbya.org">lead@gnbya.org</a>.</div>
       <div class="footer-actions">
-        <div class="footer-meta">Listings updated weekly by participating organizations.</div>
+        <div class="footer-meta" data-i18n>Listings updated weekly by participating organizations.</div>
       </div>
     </div>
   </footer>

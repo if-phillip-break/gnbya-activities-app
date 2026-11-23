@@ -305,7 +305,7 @@ function orderedValues(values, order) {
 // and the raw sheet values are included, so searching "mental health" still
 // finds listings now displayed under the merged "Health & Wellness" label.
 function searchHaystack(parts, item) {
-  return `${parts.join(" ")} ${item.categories.join(" ")} ${(item.rawCategories || []).join(" ")}`.toLowerCase();
+  return `${parts.join(" ")} ${item.categories.join(" ")} ${item.categories.map(t).join(" ")} ${(item.rawCategories || []).join(" ")} ${item.trText || ""}`.toLowerCase();
 }
 
 function filteredList() {
@@ -359,29 +359,33 @@ function filteredList() {
 // ---------- card rendering ----------
 
 function ageBadgeText(minAge, maxAge, fallback) {
-  if (minAge != null && maxAge != null) return `Ages ${minAge}-${maxAge}`;
-  if (minAge != null) return `Ages ${minAge}+`;
-  if (maxAge != null) return `Up to age ${maxAge}`;
-  return fallback;
+  if (minAge == null && maxAge == null) return fallback;
+  return agesLabel(minAge, maxAge);
+}
+
+// A listing's own words in the visitor's language when the sheet's
+// translation tabs have them (see loadTranslations), else the English.
+function tx(item, prop, fallback) {
+  return (item.tr && item.tr[prop]) || fallback;
 }
 
 function factCell(label, value, opts = {}) {
   const cls = "fact-value" + (opts.big ? " big" : "") + (opts.free ? " cost-free" : "");
   return `
     <div class="fact-cell">
-      <div class="fact-label">${label}</div>
+      <div class="fact-label">${t(label)}</div>
       <div class="${cls} auto-scroll">${value || "—"}</div>
     </div>`;
 }
 
 function badge(label, tone) {
-  return `<span class="badge ${tone === "info" ? "badge-info" : "badge-plain"}">${label}</span>`;
+  return `<span class="badge ${tone === "info" ? "badge-info" : "badge-plain"}">${t(label)}</span>`;
 }
 
 function tagRow(categories) {
   if (!categories.length) return "";
   return `<div class="tag-row">${categories
-    .map((c) => `<span class="category-tag">${c}</span>`)
+    .map((c) => `<span class="category-tag">${t(c)}</span>`)
     .join("")}</div>`;
 }
 
@@ -396,7 +400,7 @@ function attr(s) {
 
 // The arrow is its own span so it can nudge on hover; the link reads the same.
 function actionLabel(text) {
-  return `${text} <span class="card-action-arrow" aria-hidden="true">→</span>`;
+  return `${t(text)} <span class="card-action-arrow" aria-hidden="true">→</span>`;
 }
 
 // A long About text scrolls slowly by itself once its tab is open, and stops
@@ -409,7 +413,7 @@ function aboutHTML(text) {
       <div class="reader-box auto-scroll" tabindex="0"><p class="card-desc">${text}</p></div>
       <div class="reader-bar" hidden>
         <div class="reader-track"><div class="reader-fill"></div></div>
-        <button type="button" class="reader-btn" aria-pressed="false">Pause</button>
+        <button type="button" class="reader-btn" aria-pressed="false">${t("Pause")}</button>
       </div>
     </div>`;
 }
@@ -417,7 +421,7 @@ function aboutHTML(text) {
 function detailList(rows) {
   const filled = rows.filter(([, v]) => v);
   if (!filled.length) return "";
-  return `<div class="panel-scroll auto-scroll" tabindex="0"><dl class="card-details">${filled.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>`;
+  return `<div class="panel-scroll auto-scroll" tabindex="0"><dl class="card-details">${filled.map(([k, v]) => `<dt>${t(k)}</dt><dd>${v}</dd>`).join("")}</dl></div>`;
 }
 
 function cardHTML({ i, past, eyebrow, title, tabs, action }) {
@@ -432,11 +436,11 @@ function cardHTML({ i, past, eyebrow, title, tabs, action }) {
         </div>
       </div>
       <div class="card-tabs" role="tablist" aria-label="${attr(title)}">
-        ${shown.map((t, k) => `<button type="button" role="tab" id="${id}-t${k}" aria-controls="${id}-p${k}" aria-selected="${k === 0}" tabindex="${k === 0 ? 0 : -1}">${t.label}</button>`).join("")}
+        ${shown.map((tb, k) => `<button type="button" role="tab" id="${id}-t${k}" aria-controls="${id}-p${k}" aria-selected="${k === 0}" tabindex="${k === 0 ? 0 : -1}">${t(tb.label)}</button>`).join("")}
         <span class="card-tabs-ink" aria-hidden="true"></span>
       </div>
       <div class="card-panels">
-        ${shown.map((t, k) => `<div class="card-panel" role="tabpanel" id="${id}-p${k}" aria-labelledby="${id}-t${k}"${k ? " hidden" : ""}>${t.html}</div>`).join("")}
+        ${shown.map((tb, k) => `<div class="card-panel" role="tabpanel" id="${id}-p${k}" aria-labelledby="${id}-t${k}"${k ? " hidden" : ""}>${tb.html}</div>`).join("")}
       </div>
       ${action ? `<div class="card-footer">${action}</div>` : ""}
     </article>`;
@@ -458,7 +462,7 @@ function programCardHTML(p, i = 0) {
   if (notRunning) badges.push(badge("Not running this season", "plain"));
   else if (ended) badges.push(badge("Session ended", "plain"));
   else if (atCapacity) badges.push(badge("Currently full", "plain"));
-  else if (archived) badges.push(badge("Summer " + ARCHIVED_SEASON_YEAR, "plain"));
+  else if (archived) badges.push(badge(t("Summer") + " " + ARCHIVED_SEASON_YEAR, "plain"));
   if (programIsFree(p)) badges.push(badge("Free", "info"));
   else if (programHasAid(p)) badges.push(badge("Financial aid", "info"));
   if (p.busAccessible) badges.push(badge("Bus accessible", "plain"));
@@ -467,10 +471,10 @@ function programCardHTML(p, i = 0) {
 
   const overview = `
     <div class="fact-grid">
-      ${factCell("Ages", p.ageRange.display, { big: true })}
-      ${factCell("Cost", p.cost || (programIsFree(p) ? "Free" : null), { big: true, free: programIsFree(p) })}
-      ${factCell("Dates", p.sessionDates)}
-      ${factCell("Hours", p.hours)}
+      ${factCell("Ages", tx(p, "ages", p.ageRange.display), { big: true })}
+      ${factCell("Cost", tx(p, "cost", null) || (p.tr && p.tr.enrollmentCost) || p.cost || (programIsFree(p) ? t("Free") : null), { big: true, free: programIsFree(p) })}
+      ${factCell("Dates", tx(p, "sessionDates", p.sessionDates))}
+      ${factCell("Hours", tx(p, "hours", p.hours))}
     </div>
     <div class="overview-more auto-scroll">
       ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
@@ -478,8 +482,8 @@ function programCardHTML(p, i = 0) {
     </div>`;
 
   const gettingThere = [
-    p.busAccessible ? "Near an SRTA bus route" : "",
-    p.schoolPickup ? "Picks kids up from school" : "",
+    p.busAccessible ? t("Near an SRTA bus route") : "",
+    p.schoolPickup ? t("Picks kids up from school") : "",
   ].filter(Boolean).join(" · ");
   const where = detailList([
     ["Address", p.address],
@@ -491,10 +495,10 @@ function programCardHTML(p, i = 0) {
     i,
     past: closed,
     eyebrow: p.organizationName,
-    title: p.programName,
+    title: tx(p, "programName", p.programName),
     tabs: [
       { label: "Overview", html: overview },
-      { label: "About", html: aboutHTML(p.description) },
+      { label: "About", html: aboutHTML(tx(p, "description", p.description)) },
       { label: "Where", html: where },
       { label: "Contact", html: detailList([["Contact", p.contact]]) },
     ],
@@ -517,14 +521,14 @@ function organizationCardHTML(o, i = 0) {
   else if (orgIsAffordable(o)) badges.push(badge("Financial aid", "info"));
   if (o.transportation.length) badges.push(badge("Transportation", "plain"));
 
-  const whenValue = o.programYear.length ? o.programYear.join(" · ") : "Year-round";
-  const schedValue = o.schedule || (o.programModel.length ? o.programModel.join(" · ") : "");
+  const whenValue = o.programYear.length ? o.programYear.map(t).join(" · ") : t("Year-round");
+  const schedValue = tx(o, "schedule", o.schedule) || (o.programModel.length ? o.programModel.map(t).join(" · ") : "");
   const isFree = o.cost.some((c) => /free/i.test(c));
 
   const overview = `
     <div class="fact-grid">
-      ${factCell("Ages", ageBadgeText(o.minAge, o.maxAge, "All ages"), { big: true })}
-      ${factCell("Cost", orgCostSummary(o), { big: true, free: isFree })}
+      ${factCell("Ages", ageBadgeText(o.minAge, o.maxAge, t("All ages")), { big: true })}
+      ${factCell("Cost", t(orgCostSummary(o)), { big: true, free: isFree })}
       ${factCell("When", whenValue)}
       ${factCell("Schedule", schedValue)}
     </div>
@@ -535,14 +539,14 @@ function organizationCardHTML(o, i = 0) {
 
   const details = detailList([
     ["Locations", o.location],
-    ["Programs", o.programModel.join(", ")],
-    ["Grades", o.gradeLevels.join(", ")],
-    ["Transportation", o.transportation.join(", ")],
+    ["Programs", o.programModel.map(t).join(", ")],
+    ["Grades", o.gradeLevels.map(t).join(", ")],
+    ["Transportation", o.transportation.map(t).join(", ")],
     ["Schools served", o.schoolsServed],
   ]);
   const join = detailList([
-    ["Registration", o.registration.join(", ")],
-    ["Cost options", o.cost.join(", ")],
+    ["Registration", o.registration.map(t).join(", ")],
+    ["Cost options", o.cost.map(t).join(", ")],
   ]);
 
   return cardHTML({
@@ -552,7 +556,7 @@ function organizationCardHTML(o, i = 0) {
     title: o.name,
     tabs: [
       { label: "Overview", html: overview },
-      { label: "About", html: aboutHTML(o.description) },
+      { label: "About", html: aboutHTML(tx(o, "description", o.description)) },
       { label: "Details", html: details },
       { label: "Join", html: join },
     ],
@@ -571,8 +575,8 @@ function renderTabs() {
   const old = tabsEl.querySelector(".seg-indicator");
   const from = old ? old.getAttribute("style") : null;
   tabsEl.innerHTML = TABS.map(
-    (t) =>
-      `<button type="button" role="tab" class="seg-tab ${t.key === activeTab ? "active" : ""}" data-tab="${t.key}" aria-selected="${t.key === activeTab}">${t.label}${t.tag ? `<span class="seg-tab-tag">${t.tag}</span>` : ""}</button>`
+    (tab) =>
+      `<button type="button" role="tab" class="seg-tab ${tab.key === activeTab ? "active" : ""}" data-tab="${tab.key}" aria-selected="${tab.key === activeTab}">${t(tab.label)}${tab.tag ? `<span class="seg-tab-tag">${t(tab.tag)}</span>` : ""}</button>`
   ).join("");
   tabsEl.querySelectorAll(".seg-tab").forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
@@ -599,7 +603,7 @@ function placeSegIndicator(animate) {
 function renderAgeChips() {
   ageChipsEl.innerHTML = AGES.map(
     (a) =>
-      `<button type="button" class="age-chip ${a.label === ageLabel ? "active" : ""}" data-age="${a.label}">${a.label}</button>`
+      `<button type="button" class="age-chip ${a.label === ageLabel ? "active" : ""}" data-age="${a.label}">${t(a.label)}</button>`
   ).join("");
   ageChipsEl.querySelectorAll(".age-chip").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -621,16 +625,16 @@ function orgFacetValues(field) {
 
 function renderToggles() {
   if (isProgramTab(activeTab)) {
-    const t = toggleState[activeTab];
+    const tg = toggleState[activeTab];
     toggleRowEl.innerHTML = PROGRAM_TOGGLES.map(
       (f) =>
-        `<button type="button" class="toggle-pill ${t[f.key] ? "active" : ""}" data-key="${f.key}">${f.label}</button>`
+        `<button type="button" class="toggle-pill ${tg[f.key] ? "active" : ""}" data-key="${f.key}">${t(f.label)}</button>`
     ).join("");
     toggleRowEl.querySelectorAll(".toggle-pill").forEach((btn) => {
       btn.addEventListener("click", () => {
         const key = btn.dataset.key;
-        t[key] = !t[key];
-        btn.classList.toggle("active", t[key]);
+        tg[key] = !tg[key];
+        btn.classList.toggle("active", tg[key]);
         applyFilters();
       });
     });
@@ -649,7 +653,7 @@ function renderToggles() {
   toggleRowEl.innerHTML = usable
     .map(
       (q) =>
-        `<button type="button" class="toggle-pill ${quickIsActive(q) ? "active" : ""}" data-quick="${ORG_QUICK.indexOf(q)}">${q.label}</button>`
+        `<button type="button" class="toggle-pill ${quickIsActive(q) ? "active" : ""}" data-quick="${ORG_QUICK.indexOf(q)}">${t(q.label)}</button>`
     )
     .join("");
   toggleRowEl.querySelectorAll("[data-quick]").forEach((btn) => {
@@ -703,11 +707,11 @@ function renderCategoryChips() {
     ...[...cats].filter((c) => !CATEGORY_ORDER.includes(c)).sort(),
   ];
   categoryChipsEl.innerHTML =
-    `<span class="chip-label">Type of activity</span>` +
+    `<span class="chip-label">${t("Type of activity")}</span>` +
     ordered
       .map(
         (c) =>
-          `<button type="button" class="cat-chip ${selected.has(c) ? "active" : ""}" data-category="${c}">${c}</button>`
+          `<button type="button" class="cat-chip ${selected.has(c) ? "active" : ""}" data-category="${c}">${t(c)}</button>`
       )
       .join("");
   categoryChipsEl.querySelectorAll(".cat-chip").forEach((chip) => {
@@ -735,9 +739,8 @@ function closeAllFacetMenus() {
 
 // ---------- calendar date filter ----------
 
-const MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"];
-const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
+const MONTH_NAMES = MONTHS[LANG];
+const DAY_INITIALS = DAY_LETTERS[LANG];
 
 function isoOf(year, monthIndex, day) {
   return new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10);
@@ -817,38 +820,38 @@ function renderDateFilter() {
     if (sel.start && iso === sel.start) classes.push("cal-start");
     if (rangeEnd && iso === rangeEnd) classes.push("cal-end");
     if (sel.start && rangeEnd && iso > sel.start && iso < rangeEnd) classes.push("cal-mid");
-    cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" title="${count} running">${day}</button>`;
+    cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" title="${count} ${t("running")}">${day}</button>`;
   }
 
   const label = sel.start
     ? sel.end && sel.end !== sel.start
       ? `${prettyDate(sel.start)} – ${prettyDate(sel.end)}`
       : prettyDate(sel.start)
-    : "Any dates";
+    : t("Any dates");
 
   const hint = !sel.start
-    ? "Pick a day, then a second day for a range."
+    ? t("Pick a day, then a second day for a range.")
     : !sel.end
-      ? "Pick a second day for a range, or leave it for one day."
+      ? t("Pick a second day for a range, or leave it for one day.")
       : "";
 
   dateFilterEl.innerHTML = `
-    <span class="chip-label">When</span>
+    <span class="chip-label">${t("When")}</span>
     <div class="facet date-facet">
       <button type="button" class="facet-btn ${sel.start ? "active" : ""}" aria-expanded="false" aria-haspopup="true">
         <span aria-hidden="true">🗓</span> ${label}<span class="facet-caret" aria-hidden="true">▾</span>
       </button>
       <div class="facet-menu cal-menu" hidden>
         <div class="cal-head">
-          <button type="button" class="cal-nav" data-nav="-1" ${calendarCursor <= minMonth ? "disabled" : ""} aria-label="Previous month">‹</button>
-          <span class="cal-title">${MONTH_NAMES[monthIndex]} ${cy}</span>
-          <button type="button" class="cal-nav" data-nav="1" ${calendarCursor >= maxMonth ? "disabled" : ""} aria-label="Next month">›</button>
+          <button type="button" class="cal-nav" data-nav="-1" ${calendarCursor <= minMonth ? "disabled" : ""} aria-label="${t("Previous month")}">‹</button>
+          <span class="cal-title">${MONTH_NAMES[monthIndex][0].toUpperCase() + MONTH_NAMES[monthIndex].slice(1)} ${cy}</span>
+          <button type="button" class="cal-nav" data-nav="1" ${calendarCursor >= maxMonth ? "disabled" : ""} aria-label="${t("Next month")}">›</button>
         </div>
         <div class="cal-grid cal-dow">${DAY_INITIALS.map((d) => `<span>${d}</span>`).join("")}</div>
         <div class="cal-grid cal-days">${cells}</div>
         <div class="cal-foot">
           <span class="cal-hint">${hint}</span>
-          <button type="button" class="cal-clear" ${sel.start ? "" : "disabled"}>Clear dates</button>
+          <button type="button" class="cal-clear" ${sel.start ? "" : "disabled"}>${t("Clear dates")}</button>
         </div>
       </div>
     </div>`;
@@ -935,20 +938,20 @@ function renderFacetMenus() {
     const optionsHTML = opts
       .map(
         (v) =>
-          `<label class="facet-option"><input type="checkbox" value="${v}" ${sel.has(v) ? "checked" : ""}><span>${v}</span></label>`
+          `<label class="facet-option"><input type="checkbox" value="${v}" ${sel.has(v) ? "checked" : ""}><span>${t(v)}</span></label>`
       )
       .join("");
     return `
       <div class="facet" data-facet="${f.key}">
         <button type="button" class="facet-btn ${sel.size ? "active" : ""}" aria-expanded="false" aria-haspopup="true">
-          ${f.label}<span class="facet-count">${sel.size ? ` (${sel.size})` : ""}</span><span class="facet-caret" aria-hidden="true">▾</span>
+          ${t(f.label)}<span class="facet-count">${sel.size ? ` (${sel.size})` : ""}</span><span class="facet-caret" aria-hidden="true">▾</span>
         </button>
         <div class="facet-menu" hidden>${optionsHTML}</div>
       </div>`;
   }).join("");
 
   facetMenusEl.innerHTML = html
-    ? `<span class="chip-label">More filters</span>${html}`
+    ? `<span class="chip-label">${t("More filters")}</span>${html}`
     : "";
   facetMenusEl.hidden = html.trim() === "";
   wireFacetMenus();
@@ -1042,7 +1045,7 @@ function setSheetCount(text) {
 function renderArchiveNote() {
   const show = activeTab === "summer" && SUMMER_ARCHIVED;
   archiveNoteEl.hidden = !show;
-  if (show) archiveSeasonEl.textContent = "Summer " + ARCHIVED_SEASON_YEAR;
+  if (show) archiveSeasonEl.textContent = t("Summer") + " " + ARCHIVED_SEASON_YEAR;
 }
 
 // ---------- main render ----------
@@ -1057,7 +1060,7 @@ let lastCountText = "";
 // Shown while a feed loads: grey card shapes in place of the listings, so the
 // page doesn't jump when they arrive. Screen readers still hear "Loading…".
 const SKELETON_HTML =
-  `<p class="loading visually-hidden">Loading…</p>` +
+  `<p class="loading visually-hidden">${t("Loading…")}</p>` +
   Array.from({ length: 6 }, () => `
     <div class="skeleton-card" aria-hidden="true">
       <span class="sk sk-org"></span>
@@ -1068,6 +1071,11 @@ const SKELETON_HTML =
     </div>`).join("");
 
 function applyFilters() {
+  const mtNote = document.getElementById("mt-note");
+  if (mtNote) {
+    mtNote.hidden = !translated[tabDef(activeTab).dataset];
+    mtNote.textContent = t("Listing details are translated automatically and may contain mistakes.");
+  }
   clearAllBtn.hidden = !anyFilterActive();
   sheetClearBtn.disabled = !anyFilterActive();
   const activeCount = activeFilterCount();
@@ -1087,7 +1095,7 @@ function applyFilters() {
     cardGridEl.innerHTML = `<p class="loading">${loadError[ds]}</p>`;
     emptyStateEl.hidden = true;
     resultCountEl.textContent = "";
-    setSheetCount("results");
+    setSheetCount(t("results"));
     return;
   }
   if (!dataReady[ds]) {
@@ -1095,12 +1103,12 @@ function applyFilters() {
     nextMotion = "enter"; // the real cards rise in once they arrive
     emptyStateEl.hidden = true;
     resultCountEl.textContent = "";
-    setSheetCount("results");
+    setSheetCount(t("results"));
     return;
   }
 
   const list = filteredList();
-  const countText = `${list.length} ${list.length === 1 ? def.noun : def.nounPlural}`;
+  const countText = countLabel(list.length, def.noun, def.nounPlural);
   resultCountEl.textContent = countText;
   setSheetCount(countText);
   if (countText !== lastCountText && lastCountText !== "") {
@@ -1134,17 +1142,17 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 function showEmptyState(def) {
   emptyStateEl.hidden = false;
   if (tabSource().length === 0) {
-    emptyTitleEl.textContent = `No ${def.nounPlural} listed yet`;
+    emptyTitleEl.textContent = t("No {items} listed yet").replace("{items}", t(def.nounPlural));
     emptyHelpEl.textContent =
-      "Nothing has been published in this section so far. The GNBYA Organizations tab lists programs that run year-round.";
+      t("Nothing has been published in this section so far. The GNBYA Organizations tab lists programs that run year-round.");
     emptyClearBtn.hidden = true;
     return;
   }
-  emptyTitleEl.textContent = "No matches for those filters";
+  emptyTitleEl.textContent = t("No matches for those filters");
   emptyHelpEl.textContent =
     activeTab === "summer" && SUMMER_ARCHIVED
-      ? "Nothing in the summer archive matches those filters. Try clearing one."
-      : "Try widening the age range or clearing a filter.";
+      ? t("Nothing in the summer archive matches those filters. Try clearing one.")
+      : t("Try widening the age range or clearing a filter.");
   emptyClearBtn.hidden = false;
 }
 
@@ -1231,9 +1239,9 @@ function showReaderBar(reader) {
   const st = box._scroller;
   if (!st) {
     btn.hidden = true;
-    bar.insertAdjacentHTML("beforeend", '<span class="reader-hint">Scroll to read</span>');
+    bar.insertAdjacentHTML("beforeend", `<span class="reader-hint">${t("Scroll to read")}</span>`);
   } else {
-    const setBtn = () => { btn.textContent = st.userPaused ? "Play" : "Pause"; btn.setAttribute("aria-pressed", String(st.userPaused)); };
+    const setBtn = () => { btn.textContent = st.userPaused ? t("Play") : t("Pause"); btn.setAttribute("aria-pressed", String(st.userPaused)); };
     btn.addEventListener("click", () => {
       st.userPaused = !st.userPaused;
       if (!st.userPaused) { st.hold = performance.now() + 400; st.pos = box.scrollTop; }
@@ -1346,14 +1354,62 @@ function clearAll() {
 
 // ---------- data loading (each tab loads independently) ----------
 
+// ---------- machine-translated listing text ----------
+// In Spanish or Portuguese, each listing's own words come from the sheet's
+// translation tabs (one column per language and field, e.g. "es:Description"),
+// laid over the English. Only what's displayed changes: filters, dates and
+// badges keep reading the English, so a translation can't change which
+// listings match. A missing row, a blank cell, or a cell Google couldn't
+// translate (#VALUE!, "Loading...") stays in English.
+const TR_FIELDS = {
+  programs: { "Program Name": "programName", "Description": "description", "Ages or Grades": "ages",
+    "Session Dates": "sessionDates", "Hours": "hours", "Cost": "cost", "Program Enrollment Cost": "enrollmentCost" },
+  orgs: { "Schedule": "schedule", "Description": "description" },
+};
+const translated = { programs: false, orgs: false };
+const normKey = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
+const goodText = (v) => { const x = String(v || "").trim(); return x && !/^#|^loading/i.test(x) ? x : ""; };
+const programKey = (org, prog) => normKey(org) + "|" + normKey(prog);
+
+// Starts the fetch; the result is applied once the feed itself is in.
+function fetchTranslations(dataset) {
+  const url = TRANSLATION_CSV_URLS[dataset];
+  if (LANG === "en" || !url) return Promise.resolve(null);
+  // Never hold the listings back for long: after 5 seconds, show English.
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
+  return Promise.race([fetchRecords(url).catch((e) => { console.warn("Translations unavailable; showing English.", e); return null; }), timeout]);
+}
+
+function applyTranslations(dataset, records) {
+  if (!records) return;
+  const byKey = new Map();
+  records.forEach((r) => {
+    const key = dataset === "programs" ? programKey(r["Organization Name"], r["Program Name"]) : normKey(r["Organization name"]);
+    const tr = {};
+    Object.entries(TR_FIELDS[dataset]).forEach(([col, prop]) => {
+      const v = goodText(r[LANG + ":" + col]);
+      if (v) tr[prop] = v;
+    });
+    if (Object.keys(tr).length) byKey.set(key, tr);
+  });
+  const list = dataset === "programs" ? allPrograms : allOrganizations;
+  list.forEach((item) => {
+    const key = dataset === "programs" ? programKey(item.organizationName, item.programName) : normKey(item.name);
+    const tr = byKey.get(key);
+    if (tr) { item.tr = tr; item.trText = Object.values(tr).join(" "); translated[dataset] = true; }
+  });
+}
+
 async function loadPrograms() {
+  const tr = fetchTranslations("programs");
   try {
     const records = await fetchRecords(PROGRAMS_CSV_URL);
     allPrograms = records.map(mapRecordToProgram);
+    applyTranslations("programs", await tr);
     dataReady.programs = true;
   } catch (error) {
     console.error("Failed to load programs:", error);
-    loadError.programs = "Sorry, we couldn't load programs right now. Please try again later.";
+    loadError.programs = t("Sorry, we couldn't load programs right now. Please try again later.");
   }
   // Both program tabs are served by this one fetch.
   if (isProgramTab(activeTab)) {
@@ -1363,13 +1419,15 @@ async function loadPrograms() {
 }
 
 async function loadOrganizations() {
+  const tr = fetchTranslations("orgs");
   try {
     const records = await fetchRecords(ORGS_CSV_URL);
     allOrganizations = records.map(mapRecordToOrganization);
+    applyTranslations("orgs", await tr);
     dataReady.orgs = true;
   } catch (error) {
     console.error("Failed to load organizations:", error);
-    loadError.orgs = "Sorry, we couldn't load organizations right now. Please try again later.";
+    loadError.orgs = t("Sorry, we couldn't load organizations right now. Please try again later.");
   }
   if (activeTab === "year") {
     renderToggles();

@@ -25,6 +25,15 @@ const SUGGEST_FORM_URL = null;
 const ORGS_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOv1GOvvxbbs45Zhnr7fLXKojgM6IvwChxO7omeJbnfWw1ziupuekM_x6jaSiTXgWJa35LbXUL17ww/pub?gid=1960834970&single=true&output=csv";
 
+// Machine-translated listing text for Spanish and Portuguese visitors: one
+// published tab per dataset in the same spreadsheet (see js/i18n.js and
+// docs). Left null, the guide shows listings in English; the interface is
+// still translated.
+const TRANSLATION_CSV_URLS = {
+  programs: null,
+  orgs: null,
+};
+
 async function fetchRecords(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Request failed: ${response.status} for ${url}`);

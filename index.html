@@ -16,19 +16,19 @@
   <header class="site-header">
     <div class="container header-grid">
       <div class="header-left">
-        <h1 class="page-title"><span class="tw" style="--w:0">Find</span> <span class="tw" style="--w:1">a</span> <span class="tw" style="--w:2">camp</span> <span class="tw" style="--w:3">or</span> <span class="tw" style="--w:4">program</span> <span class="tw" style="--w:5">for</span> <span class="tw" style="--w:6">your</span> <span class="tw" style="--w:7">child</span></h1>
+        <h1 class="page-title" data-i18n-words="Find a camp or program for your child"><span class="tw" style="--w:0">Find</span> <span class="tw" style="--w:1">a</span> <span class="tw" style="--w:2">camp</span> <span class="tw" style="--w:3">or</span> <span class="tw" style="--w:4">program</span> <span class="tw" style="--w:5">for</span> <span class="tw" style="--w:6">your</span> <span class="tw" style="--w:7">child</span></h1>
         <button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false">
           <span class="theme-track" aria-hidden="true"><span class="theme-thumb"></span></span>
-          <span class="theme-label">Dark mode</span>
+          <span class="theme-label" data-i18n>Dark mode</span>
         </button>
       </div>
 
       <aside class="getting-started">
-        <p class="gs-label">Getting started</p>
+        <p class="gs-label" data-i18n>Getting started</p>
         <ol class="gs-list">
-          <li><span class="gs-num">1</span><span>Enter your child's age to hide programs they can't join.</span></li>
-          <li><span class="gs-num">2</span><span>Use the filters for free spots, bus routes, or language support.</span></li>
-          <li><span class="gs-num">3</span><span>Stuck? Email <a href="mailto:lead@gnbya.org">lead@gnbya.org</a> for help choosing.</span></li>
+          <li><span class="gs-num">1</span><span data-i18n>Enter your child's age to hide programs they can't join.</span></li>
+          <li><span class="gs-num">2</span><span data-i18n>Use the filters for free spots, bus routes, or language support.</span></li>
+          <li><span class="gs-num">3</span><span data-i18n="Stuck? Email lead@gnbya.org for help choosing." data-i18n-html>Stuck? Email <a href="mailto:lead@gnbya.org">lead@gnbya.org</a> for help choosing.</span></li>
         </ol>
       </aside>
     </div>
@@ -41,14 +41,14 @@
         <div class="search-wrap">
           <svg class="search-icon" aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
           <input type="search" id="search-input" class="search-input"
-                 placeholder="Search camps, clubs, or organizations" aria-label="Search">
+                 placeholder="Search camps, clubs, or organizations" aria-label="Search" data-i18n-attr="placeholder,aria-label">
         </div>
         <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="filter-sheet">
-          <svg class="filters-icon" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Filters<span class="filters-count" id="filters-count"></span><span class="facet-caret" aria-hidden="true">▾</span>
+          <svg class="filters-icon" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span data-i18n>Filters</span><span class="filters-count" id="filters-count"></span><span class="facet-caret" aria-hidden="true">▾</span>
         </button>
         <div class="age-group">
-          <span class="age-label">Child's age</span>
-          <div class="age-chips" id="age-chips" role="group" aria-label="Filter by age"></div>
+          <span class="age-label" data-i18n>Child's age</span>
+          <div class="age-chips" id="age-chips" role="group" aria-label="Filter by age" data-i18n-attr="aria-label"></div>
         </div>
       </div>
     </div>
@@ -65,8 +65,8 @@
   <div class="filter-sheet" id="filter-sheet">
     <div class="sheet-head">
       <span class="sheet-grab" aria-hidden="true"></span>
-      <p class="sheet-title">Filters</p>
-      <button type="button" class="sheet-close" id="sheet-close" aria-label="Close filters">&times;</button>
+      <p class="sheet-title" data-i18n>Filters</p>
+      <button type="button" class="sheet-close" id="sheet-close" aria-label="Close filters" data-i18n-attr="aria-label">&times;</button>
     </div>
 
     <div class="sheet-body">
@@ -79,13 +79,13 @@
         <!-- Calendar picker; hidden on tabs whose listings have no dates. -->
         <div class="facet-row date-filter" id="date-filter" role="group" aria-label="Filter by date" hidden></div>
         <div class="facet-row" id="facet-menus" role="group" aria-label="More filters" hidden></div>
-        <button type="button" id="clear-all" class="clear-all" hidden>Clear all</button>
+        <button type="button" id="clear-all" class="clear-all" hidden data-i18n>Clear all</button>
       </div>
     </div>
 
     <div class="sheet-foot">
-      <button type="button" class="sheet-clear" id="sheet-clear">Clear all</button>
-      <button type="button" class="sheet-apply" id="sheet-apply">Show <span id="sheet-count">results</span></button>
+      <button type="button" class="sheet-clear" id="sheet-clear" data-i18n>Clear all</button>
+      <button type="button" class="sheet-apply" id="sheet-apply"><span data-i18n>Show</span> <span id="sheet-count">results</span></button>
     </div>
   </div>
 
@@ -96,43 +96,47 @@
       <div class="result-count" id="result-count" aria-live="polite"></div>
     </div>
 
+    <!-- Shown in Spanish and Portuguese once machine-translated listings load. -->
+    <p class="mt-note" id="mt-note" hidden></p>
+
     <!-- Shown only on the Summer tab out of season. Summer listings stay
          published year-round so families can see what a summer normally
          offers, so the tab says plainly that these have already run. -->
     <div class="archive-note" id="archive-note" hidden>
       <div class="archive-note-body">
-        <p class="archive-note-label"><span id="archive-season">Summer</span> · finished</p>
-        <p class="archive-note-text">These programs have already run. They stay here so you can see what each organization usually offers and ask about next summer — most open registration in the spring.</p>
+        <p class="archive-note-label"><span id="archive-season">Summer</span> · <span data-i18n>finished</span></p>
+        <p class="archive-note-text" data-i18n>These programs have already run. They stay here so you can see what each organization usually offers and ask about next summer — most open registration in the spring.</p>
       </div>
-      <button type="button" class="archive-note-link" id="archive-note-link">See what&rsquo;s running now &rarr;</button>
+      <button type="button" class="archive-note-link" id="archive-note-link" data-i18n>See what&rsquo;s running now &rarr;</button>
     </div>
 
     <div class="card-grid" id="card-grid">
-      <p class="loading">Loading…</p>
+      <p class="loading" data-i18n>Loading…</p>
     </div>
 
     <div class="empty-state" id="empty-state" hidden>
-      <p class="empty-title">No matches for those filters</p>
-      <p class="empty-help">Try widening the age range or clearing a filter.</p>
-      <button type="button" id="empty-clear" class="clear-all-btn">Clear all filters</button>
+      <p class="empty-title" data-i18n>No matches for those filters</p>
+      <p class="empty-help" data-i18n>Try widening the age range or clearing a filter.</p>
+      <button type="button" id="empty-clear" class="clear-all-btn" data-i18n>Clear all filters</button>
     </div>
   </main>
 
   <!-- ============ Footer ============ -->
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div class="footer-help">Need help choosing or applying? Email <a href="mailto:lead@gnbya.org">lead@gnbya.org</a>.</div>
+      <div class="footer-help" data-i18n="Need help choosing or applying? Email lead@gnbya.org." data-i18n-html>Need help choosing or applying? Email <a href="mailto:lead@gnbya.org">lead@gnbya.org</a>.</div>
       <div class="footer-actions">
         <!-- Shown only once SUGGEST_FORM_URL is set in js/data.js. -->
-        <a class="suggest-link" id="suggest-link" target="_blank" rel="noopener" hidden>Know a program we're missing? Tell us →</a>
-        <div class="footer-meta">Listings updated weekly by participating organizations.</div>
-        <a class="footer-partner-link" href="partners.html">For organizations &rarr;</a>
+        <a class="suggest-link" id="suggest-link" target="_blank" rel="noopener" hidden data-i18n>Know a program we're missing? Tell us →</a>
+        <div class="footer-meta" data-i18n>Listings updated weekly by participating organizations.</div>
+        <a class="footer-partner-link" href="partners.html" data-i18n>For organizations &rarr;</a>
       </div>
     </div>
   </footer>
 
   <script src="js/csv.js" defer></script>
   <script src="js/data.js" defer></script>
+  <script src="js/i18n.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

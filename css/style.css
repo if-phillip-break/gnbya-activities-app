@@ -636,6 +636,8 @@ input, button, select { font-family: inherit; }
 
 .result-count { display: inline-block; font-size: 15px; color: var(--muted); font-weight: 500; transform-origin: right center; }
 .result-count.bump { animation: count-bump 0.45s var(--ease-out); }
+/* Spanish/Portuguese: says the listing text is machine-translated. */
+.mt-note { margin: -8px 0 18px; font-size: 13px; color: var(--faint); }
 
 .loading { grid-column: 1 / -1; color: var(--faint); padding: 2rem 0; text-align: center; }
 
@@ -1568,7 +1570,8 @@ body.sheet-lock { overflow: hidden; }
    smaller size with no side padding ("Overview" was cut to "Overvi…"). */
 @container (max-width: 270px) {
   .card-tabs { gap: 0; }
-  .card-tabs button { font-size: 12.5px; padding-left: 0; padding-right: 0; }
+  /* Each tab as wide as its own word, so longer Spanish labels still fit. */
+  .card-tabs button { flex: 1 1 auto; font-size: 12px; padding-left: 1px; padding-right: 1px; }
 }
 
 /* Label/value rows on Where, Details, Contact and Join. */
